@@ -2435,7 +2435,7 @@ class FlowPageInteractionEmailForm(StyledForm):
         self.helper.add_input(
             Submit(
                 "submit", _("Send Email"),
-                css_class="relate-submit-button"))
+                css_class="relate-submit-button btn-secondary"))
 
     def clean_message(self):
         cleaned_data = super().clean()

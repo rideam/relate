@@ -1,0 +1,23 @@
+{% extends "course/course-datatables.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+  {% trans "Query Participations" %} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <h3 class="text-secondary mb-4">{% trans "Query Participations" %}</h3>
+
+  <div class="">
+    {% crispy form %}
+  </div>
+
+  {% if result %}
+    {% include "course/participation-table.html" with participations=result %}
+  {% elif result != None %}
+    {% trans "No matches" %}
+  {% endif %}
+
+{% endblock %}

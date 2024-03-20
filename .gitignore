@@ -25,7 +25,7 @@ saml_config.py
 
 *.pem
 
-git-roots
+git-roots/*
 
 .mypy_cache
 
@@ -42,3 +42,4 @@ bulk-storage
 tags
 
 frontend-dist
+.DS_Store*

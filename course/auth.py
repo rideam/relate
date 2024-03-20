@@ -383,10 +383,10 @@ class LoginForm(AuthenticationFormBase):
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_tag = False
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        self.helper.label_class = "col-lg-12"
+        self.helper.field_class = "col-lg-12"
 
-        self.helper.add_input(Submit("submit", _("Sign in")))
+        self.helper.add_input(Submit("submit", _("Sign In"), css_class="btn-secondary", style="width: 100%; margin-top: 1rem;"))
 
         super().__init__(*args, **kwargs)
 
@@ -452,10 +452,13 @@ class SignUpForm(StyledModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.helper.label_class = "col-lg-12"
+        self.helper.field_class = "col-lg-12"
+
         self.fields["email"].required = True
 
         self.helper.add_input(
-                Submit("submit", _("Send email")))
+                Submit("submit", _("Send Email"), css_class="btn-secondary", style="width: 100%; margin-top: 1rem;"))
 
 
 @logout_confirmation_required
@@ -530,7 +533,7 @@ def sign_up(request):
     else:
         form = SignUpForm()
 
-    return render(request, "generic-form.html", {
+    return render(request, "course/signup.html", {
         "form_description": _("Sign up"),
         "form": form
         })
@@ -542,9 +545,11 @@ class ResetPasswordFormByEmail(StyledForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.helper.label_class = "col-lg-12"
+        self.helper.field_class = "col-lg-12"
 
         self.helper.add_input(
-                Submit("submit", _("Send email")))
+                Submit("submit", _("Send email"), css_class="btn-secondary", style="width: 100%; margin-top: 1rem;"))
 
 
 class ResetPasswordFormByInstid(StyledForm):
@@ -555,8 +560,11 @@ class ResetPasswordFormByInstid(StyledForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.helper.label_class = "col-lg-12"
+        self.helper.field_class = "col-lg-12"
+
         self.helper.add_input(
-                Submit("submit", _("Send email")))
+                Submit("submit", _("Send email"), css_class="btn-secondary", style="width: 100%; margin-top: 1rem;"))
 
 
 def masked_email(email):
@@ -667,7 +675,8 @@ def reset_password(request, field="email"):
     return render(request, "reset-passwd-form.html", {
         "field": field,
         "form_description":
-            _("Password reset on %(site_name)s")
+            # _("Password reset on %(site_name)s")
+            _("Password Reset")
             % {"site_name": _(get_site_name())},
         "form": form
         })
@@ -677,7 +686,7 @@ class ResetPasswordStage2Form(StyledForm):
     password = forms.CharField(widget=forms.PasswordInput(),
                               label=_("Password"))
     password_repeat = forms.CharField(widget=forms.PasswordInput(),
-                              label=_("Password confirmation"))
+                              label=_("Password Confirmation"))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -771,8 +780,11 @@ class SignInByEmailForm(StyledForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.helper.label_class = "col-lg-12"
+        self.helper.field_class = "col-lg-12"
+
         self.helper.add_input(
-                Submit("submit", _("Send sign-in email")))
+                Submit("submit", _("Send Sign In email"), css_class='btn-secondary', style="width: 100%; margin-top: 1rem;" ))
 
 
 @logout_confirmation_required

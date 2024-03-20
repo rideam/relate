@@ -1456,6 +1456,8 @@ def markup_to_html(
         MathJaxExtension(),
         NBConvertExtension(),
         "markdown.extensions.extra",
+        "markdown.extensions.admonition",
+        "markdown.extensions.toc"
     ]
 
     if not disable_codehilite:

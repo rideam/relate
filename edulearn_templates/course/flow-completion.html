@@ -1,0 +1,16 @@
+{% extends "course/course-base.html" %}
+
+{% load i18n %}
+
+{% block title %}
+  {{flow_desc.title}} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  {{ completion_text|safe }}
+
+  <a class="btn btn-secondary"
+    href="{% url "relate-view_start_flow" course.identifier flow_identifier %}"
+    role="button">&laquo; {% trans "Back to Start Page" %}</a>
+
+{% endblock %}

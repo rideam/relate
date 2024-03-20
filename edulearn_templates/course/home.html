@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+
+{% block pre_root_container %}
+
+  {% if not user.is_authenticated %}
+    {#    <div style="background: linear-gradient(120deg, #082542, #04396b, #319795, #ffffff 90%);">#}
+    <div style="background: linear-gradient(120deg, #410c96, #410c96, #410c96, #410c96 90%);">
+
+      <div class="pt-5">
+        <div class="container">
+          <div class="row gx-5 align-items-center text-white fs-5">
+            <div class="col-lg-6">
+              <h3 class="font-bold mb-5 text-white">Smart Digital Learning</h3>
+              <p class=" my-3">Learning for anyone, from anywhere.</p>
+              <ul>
+                <li class="d-flex align-items-center">
+                  <img src="{% static 'images/check.svg' %}" alt="" class="me-2"
+                       style="width: .875rem; height: .875rem;">
+                  Clean UI to keep you focussed on learning
+                </li>
+                <li class="d-flex align-items-center">
+                  <img src="{% static 'images/check.svg' %}" alt="" class="me-2"
+                       style="width: .875rem; height: .875rem;">
+                  Engage with Quizzes
+                </li>
+                <li class="d-flex align-items-center">
+                  <img src="{% static 'images/check.svg' %}" alt="" class="me-2"
+                       style="width: .875rem; height: .875rem;">
+                  Outcome driven learning
+                </li>
+              </ul>
+
+              <div class="d-flex" style="margin-top: 3rem">
+                {% if student_sign_in_view %}
+                  <a class="btn btn-rounded btn-light" style="width: auto;"
+                     href="{% url student_sign_in_view %}">{% trans "Get Started" %}</a>
+                {% endif %}
+              </div>
+
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+              <img src="{% static "images/add-new-course.svg" %}" class="img-fluid" alt="" style="width: 60%">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 1428 174" version="1.1" xmlns="http://www.w3.org/2000/svg"
+           xmlns:xlink="http://www.w3.org/1999/xlink">
+        <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+          <g transform="translate(-2.000000, 44.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <path
+              d="M0,0 C90.7283404,0.927527913 147.912752,27.187927 291.910178,59.9119003 C387.908462,81.7278826 543.605069,89.334785 759,82.7326078 C469.336065,156.254352 216.336065,153.6679 0,74.9732496"
+              opacity="0.100000001"></path>
+            <path
+              d="M100,104.708498 C277.413333,72.2345949 426.147877,52.5246657 546.203633,45.5787101 C666.259389,38.6327546 810.524845,41.7979068 979,55.0741668 C931.069965,56.122511 810.303266,74.8455141 616.699903,111.243176 C423.096539,147.640838 250.863238,145.462612 100,104.708498 Z"
+              opacity="0.100000001"></path>
+            <path
+              d="M1046,51.6521276 C1130.83045,29.328812 1279.08318,17.607883 1439,40.1656806 L1439,120 C1271.17211,77.9435312 1140.17211,55.1609071 1046,51.6521276 Z"
+              id="Path-4" opacity="0.200000003"></path>
+          </g>
+          <g transform="translate(-4.000000, 76.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <path
+              d="M0.457,34.035 C57.086,53.198 98.208,65.809 123.822,71.865 C181.454,85.495 234.295,90.29 272.033,93.459 C311.355,96.759 396.635,95.801 461.025,91.663 C486.76,90.01 518.727,86.372 556.926,80.752 C595.747,74.596 622.372,70.008 636.799,66.991 C663.913,61.324 712.501,49.503 727.605,46.128 C780.47,34.317 818.839,22.532 856.324,15.904 C922.689,4.169 955.676,2.522 1011.185,0.432 C1060.705,1.477 1097.39,3.129 1121.236,5.387 C1161.703,9.219 1208.621,17.821 1235.4,22.304 C1285.855,30.748 1354.351,47.432 1440.886,72.354 L1441.191,104.352 L1.121,104.031 L0.457,34.035 Z"></path>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% block cover %}
+    {% comment %}{% if not user.is_authenticated %}
+      <div class="pt-5">
+        <div class="container">
+          <div class="row gx-5 align-items-center">
+            <div class="col-lg-6">
+              <h3 class="font-bold">Simply learning</h3>
+              <p class=" my-3">Online learning for anyone, from anywhere.</p>
+              <ul>
+                <li class="d-flex align-items-center">
+                  <svg style="width: .875rem; height: .875rem"
+                       class="w-3.5 h-3.5 me-2 text-green-500 dark:text-green-400 flex-shrink-0" aria-hidden="true"
+                       xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                  </svg>
+                  Clean UI to keep you focussed on learning
+                </li>
+                <li class="d-flex align-items-center">
+                  <svg style="width: .875rem; height: .875rem"
+                       class="w-3.5 h-3.5 me-2 text-green-500 dark:text-green-400 flex-shrink-0" aria-hidden="true"
+                       xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                  </svg>
+                  Engage with quizzes</li>
+                <li class="d-flex align-items-center">
+                  <svg style="width: .875rem; height: .875rem"
+                       class="w-3.5 h-3.5 me-2 text-green-500 dark:text-green-400 flex-shrink-0" aria-hidden="true"
+                       xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                  </svg>
+                  Outcome driven learning</li>
+              </ul>
+
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+              <img src="{% static "images/learn.svg" %}" class="img-fluid" alt="">
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}{% endcomment %}
+
+
+
+    {% comment %}<div class="card text-dark bg-light mb-4">
+      <div class="card-body">
+        <h1>{% blocktrans with RELATE=relate_site_name %} Welcome to {{ RELATE }} {% endblocktrans %}</h1>
+        <p>{% trans "RELATE is an Environment for Learning And TEaching" %}</p>
+        <p>
+        <a class="btn btn-lg btn-outline-primary" href="https://github.com/inducer/relate" role="button">{% trans "Learn more" %} &raquo;</a>
+        </p>
+      </div>
+    </div>{% endcomment %}
+    <div class="jumbotron">
+    </div>
+  {% endblock %}
+
+
+  {% block course_list %}
+    {% if current_courses or past_courses %}
+      {% block current_course_list %}
+        <div class="d-flex justify-content-between align-items-center my-3">
+          <h5 class="mb-3 mt-4 text-secondary">{% if not user.is_authenticated %}{% trans "Featured Courses" %}{% else %}
+            {% trans "Courses" %}
+          {% endif %}</h5>
+          {% if user.is_staff %}
+            <a class="btn btn-outline-secondary" href="{% url 'relate-set_up_new_course' %}"
+               role="button">{% trans "Create Course" %} &raquo;</a>
+          {% endif %}
+        </div>
+        {% if current_courses %}
+          <div class="d-flex mb-1 flex-wrap">
+            {% for course in current_courses %}
+              <a class="text-decoration-none " href="{% url 'relate-course_page' course.identifier %}">
+                <div class="card me-3 mb-3 shadow py-1" style="width: 18rem;">
+                  {#                <h5 class="card-header">{{course.name}}</h5>#}
+                  <div class="card-body">
+                    <h5 class="text-black">{{ course.name }}</h5>
+                    <p class="text-muted card-text">
+                      {% for tag in course.get_label_tags %}
+                        <span class="badge rounded-pill bg-secondary">{{ tag }}</span>
+                      {% endfor %}
+
+                      {% comment %}{{ course.number }} -{% endcomment %}
+                    </p>
+                    {% comment %} <a class="btn btn-primary" href="{% url 'relate-course_page' course.identifier %}"
+                               role="button">{% trans "View" %} &raquo;</a>{% endcomment %}
+                  </div>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endblock %}
+      {% comment %}{% if past_courses %}
+        {% block past_course_list %}
+          <h5 class="text-muted mt-4">{% trans "Past Courses" %}</h5>
+          <table class="table table-condensed mb-5">
+            <tr>
+              <th>Number</th>
+              <th></th>
+              <th>Name</th>
+              <th>Time</th>
+            </tr>
+            {% for course in past_courses %}
+              <tr
+                {% if not course.accepts_enrollment or course.hidden %}
+                  class="text-muted"
+                {% endif %}
+              >
+                <td><a class="link-secondary"
+                       href="{% url 'relate-course_page' course.identifier %}">{{ course.number }}</a></td>
+                <td><a class="link-secondary"
+                       href="{% url 'relate-course_page' course.identifier %}">{{ course.time_period }}</a></td>
+                <td>{{ course.name }}</td>
+                <td>{% if course.start_date %}{{ course.start_date }}{% endif %}
+                  {% if course.start_date or course.end_date %} - {% endif %}{% if course.end_date %}
+                  {{ course.end_date }}{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% endblock %}
+      {% endif %}{% endcomment %}
+    {% else %}
+      {% blocktrans trimmed with RELATE=relate_site_name %} There are no courses hosted on this {{ RELATE }} site.
+      {% endblocktrans %}
+      {% if not user.is_authenticated %}
+        {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}
+        {% blocktrans trimmed %}
+          <a href="{{ relate-sign_in_by_user_pw }}">Sign in</a> to get started.
+        {% endblocktrans %}
+      {% endif %}
+    {% endif %}
+    {% comment %}{% if user.is_staff %}
+      <a class="btn btn-outline-secondary" href="{% url 'relate-set_up_new_course' %}" role="button">{% trans "Set up new course" %} &raquo;</a>
+    {% endif %}{% endcomment %}
+  {% endblock %}
+{% endblock %}
+
+

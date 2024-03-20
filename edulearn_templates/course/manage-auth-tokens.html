@@ -1,0 +1,83 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}
+  {% trans "Manage Authentication Tokens" %}: - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <h3 class="mb-4 mt-4 text-secondary">{% trans "Manage Authentication Tokens" %}</h3>
+
+  {{ new_token_message }}
+
+  {% if not tokens %}
+    <div class="mb-5 alert alert-info ">
+      {% trans "(No tokens have been created yet.)" %}
+    </div>
+  {% else %}
+    <table class="table table-condensed mb-5">
+      <thead>
+        <th>{% trans "Token ID" %}</th>
+        <th>{% trans "Role Restriction" %}</th>
+        <th>{% trans "Description" %}</th>
+        <th>{% trans "Created" %}</th>
+        <th>{% trans "Valid until" %}</th>
+        <th>{% trans "Last used" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </thead>
+      <tbody>
+        {% for token in tokens %}
+          <tr>
+            <td>
+              {% if token.revocation_time %}
+                <s>{{ token.id }}</s>
+              {% else %}
+                {{ token.id }}
+              {% endif %}
+            </td>
+            <td>{{ token.restrict_to_participation_role }}</td>
+            <td>
+              {% if token.revocation_time %}
+                <s>{{ token.description }}</s>
+              {% else %}
+                {{ token.description }}
+              {% endif %}
+            </td>
+            <td>{{ token.creation_time }}</td>
+            {% if token.revocation_time != None %}
+              <td>{% trans "Revoked" %} {{ token.revocation_time }}</td>
+            {% elif token.valid_until == None %}
+              <td>{% trans "Indefinitely" %}</td>
+            {% else %}
+              <td>{{ token.valid_until }}</td>
+            {% endif %}
+            <td>
+              {% if token.last_use_time %}
+                {{ token.last_use_time }}
+              {% else %}
+                {% trans "(never used)" %}
+              {% endif %}
+            </td>
+            <td>
+              {% if token.revocation_time == None %}
+                <form method="POST">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm" name="revoke_{{ token.id }}">
+                    Revoke
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <div class="">
+    {% crispy form %}
+  </div>
+{% endblock %}

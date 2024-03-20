@@ -575,7 +575,7 @@ def update_course(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text": form_text,
-        "form_description": gettext("Update Course Revision"),
+        "form_description": gettext("Update Course revision"),
     })
 
 # }}}

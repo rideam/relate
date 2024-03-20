@@ -86,7 +86,7 @@ class SandboxForm(forms.Form):
         self.fields["content"].strip = False
 
         self.helper.add_input(
-                Submit("preview", _("Preview"), accesskey="p"),
+                Submit("preview", _("Preview"), css_class="btn-secondary", accesskey="p"),
                 )
         self.helper.add_input(
                 Submit("clear", _("Clear"), css_class="btn-secondary"),

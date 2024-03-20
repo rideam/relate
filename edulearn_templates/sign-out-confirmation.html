@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% trans "You've already signed in" %}</h1>
+  <p class="my-4">{% trans "Would you like to sign out and proceed with your previous operation?" %}</p>
+  <a href="{% url 'relate-logout' %}{{ next_uri }}" class="btn btn-danger">{% trans "Sign out" %}</a>
+  <button class="btn btn-secondary" onclick="window.history.back()">{% trans "Cancel" %}</button>
+{% endblock %}

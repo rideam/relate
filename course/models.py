@@ -112,9 +112,9 @@ class Course(models.Model):
     time_period = models.CharField(
             null=True, blank=False,
             max_length=200,
-            verbose_name=_("Time Period"),
+            verbose_name=_("Course label"),
             help_text=_("A human-readable description of the "
-                "time period for the course (e.g. 'Fall 2014')"))
+                "course: Curriculum,Level (e.g. 'Zimsec,Form 4')"))
 
     start_date = models.DateField(
             verbose_name=_("Start date"),
@@ -270,6 +270,10 @@ class Course(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()  # performs regular validation then clean()
         super().save(*args, **kwargs)
+
+    def get_label_tags(self):
+        return self.time_period.split(',')
+
 
 # }}}
 

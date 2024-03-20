@@ -595,7 +595,7 @@ class ExamTicketBackend:
 
 
 class ExamCheckInForm(StyledForm):
-    username = forms.CharField(required=True, label=_("User name"),
+    username = forms.CharField(required=True, label=_("Username"),
             # For now, until we upgrade to a custom user model.
             max_length=30,
             help_text=_("This is typically your full email address."))
@@ -609,7 +609,7 @@ class ExamCheckInForm(StyledForm):
         super().__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Check in")))
+                Submit("submit", _("Check in"), css_class="btn-secondary"))
 
 
 @sensitive_post_parameters()
