@@ -134,6 +134,10 @@ class Course(models.Model):
     accepts_enrollment = models.BooleanField(
             default=True,
             verbose_name=_("Accepts enrollment"))
+    featured_course = models.BooleanField(
+        default=False,
+        help_text = _("Should the course be listed as a featured course on the landing page?"),
+        verbose_name = _("Listed on landing page"))
 
     git_source = models.CharField(max_length=200, blank=False,
             help_text=_("A Git URL from which to pull course updates. "

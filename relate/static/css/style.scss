@@ -2,6 +2,7 @@ body {
     font-family: 'Nunito Sans', sans-serif !important;
     //font-family: 'Lato', sans-serif !important;
     //font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: .2px;
 }
 
 h1, .h1 {
@@ -9,14 +10,37 @@ h1, .h1 {
 }
 
 h6, .h6, h5, .h5, h4, .h4, h3, .h3, h2, .h2, h1, .h1 {
+  //font-weight: 600;
+  //font-weight: normal;
   font-weight: 600;
   line-height: 1.2;
-  color: #410c96;
+  color: var(--bs-secondary);
 }
 
 img {
   border-radius: 0.5rem;
 }
+
+details {
+  padding-left: 1.5rem;
+}
+
+summary {
+  //background: var(--bs-secondary);
+  //color: white;
+  padding: 0 10px;
+  border-radius: 10px;
+  width: fit-content;
+  margin-bottom: 1.5rem;
+  border: solid var(--bs-secondary) 0.1rem;
+}
+
+
+div.alert {
+  width: fit-content;
+  padding-right: 1.5rem;
+}
+
 
 .btn-rounded {
   border-radius: 10rem;
@@ -29,6 +53,10 @@ img {
   font-weight: 700 !important;
 }
 
+
+mjx-container {
+  font-size: 1.1rem;
+}
 /* Original */
 
 
@@ -94,7 +122,7 @@ table.past-flow-session-table {
 
 code {
   /* Bootstrap: Hot pink for code? Really? */
-  color: #333;
+  //color: #333;
 }
 
 .relate-flow-page-toc {
@@ -450,7 +478,7 @@ div.rendered_html div.highlight > pre {
 
 
 .admonition, .topic {
-  margin: 1rem auto;
+  margin: 1.5rem auto;
   padding: 0 0.5rem 0.5rem 0.5rem;
   background: var(--color-admonition-background);
   border-radius: 0.2rem;

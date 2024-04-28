@@ -289,7 +289,7 @@ for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
 
-RELATE_SITE_NAME = gettext_noop("EduLearn")
+RELATE_SITE_NAME = gettext_noop("rideam.co")
 RELATE_CUTOMIZED_SITE_NAME = local_settings.get("RELATE_CUTOMIZED_SITE_NAME")
 if RELATE_CUTOMIZED_SITE_NAME is not None and RELATE_CUTOMIZED_SITE_NAME.strip():
     RELATE_SITE_NAME = RELATE_CUTOMIZED_SITE_NAME

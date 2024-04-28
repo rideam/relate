@@ -9,9 +9,9 @@
 
 {% block content %}
   {% if grade_participation.pk == participation.pk %}
-    <h3 class="text-secondary mt-4 mb-4">{% trans "My Grades" %}</h3>
+    <h1 class="text-secondary mt-4 mb-4">{% trans "My Grades" %}</h1>
   {% else %}
-    <h3 class="text-secondary mt-4 mb-4">{% trans "Grades" %}</h3>
+    <h1 class="text-secondary mt-4 mb-4">{% trans "Grades" %}</h1>
 
     <table class="table table-condensed">
       <thead>

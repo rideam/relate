@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-  <h3 class="text-secondary mt-4">{% trans "Understand a grade" %}: {{ opportunity.name }} </h3>
+  <h1 class="text-secondary mt-4">{% trans "Understand a grade" %}: {{ opportunity.name }} </h1>
 
   <table class="table table-condensed">
     <thead>
@@ -64,7 +64,7 @@
 
   {# {{{ grade history #}
 
-  <h3 class="text-secondary mt-5">{% trans "Grade history" %}</h3>
+  <h1 class="text-secondary mt-5">{% trans "Grade history" %}</h1>
   {% if not grade_changes%}
     {% blocktrans %} (no grade data available){% endblocktrans %}
   {% else %}
@@ -132,7 +132,7 @@
   {# {{{ flow-related #}
 
   {% if flow_sessions_and_session_properties %}
-    <h3 class="text-secondary mt-5">{% trans "Flow sessions" %}</h3>
+    <h1 class="text-secondary mt-5">{% trans "Flow sessions" %}</h1>
 
     <form method="POST">
       {% csrf_token %}

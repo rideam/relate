@@ -9,6 +9,16 @@
 {% endblock %}
 
 {% block header_extra %}
+<style>
+  h6, .h6, h5, .h5, h4, .h4, h3, .h3, h2, .h2, h1, .h1 {
+  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% comment %}
+{% block header_extra %}
   <style>
     body {
       counter-reset: h1counter h2counter h3counter h4counter h5counter h6counter;
@@ -63,6 +73,7 @@
     }
   </style>
 {% endblock %}
+{% endcomment %}
 
 {% block brand %}
   {{ course.name }}

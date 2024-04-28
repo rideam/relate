@@ -157,7 +157,7 @@ class CourseCreationForm(StyledModelForm):
         super().__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Validate and create")))
+                Submit("submit", _("Validate and create"), css_class='btn-secondary'))
 
 
 @permission_required("course.add_course")
@@ -277,7 +277,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
         form = CourseCreationForm()
 
     return render(request, "generic-form.html", {
-        "form_description": _("Set up new course"),
+        "form_description": _("Set up New Course"),
         "form": form
         })
 

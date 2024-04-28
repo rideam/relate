@@ -676,7 +676,7 @@ def reset_password(request, field="email"):
         "field": field,
         "form_description":
             # _("Password reset on %(site_name)s")
-            _("Password Reset")
+            _("Forgot Password")
             % {"site_name": _(get_site_name())},
         "form": form
         })
@@ -936,7 +936,7 @@ class UserForm(StyledModelForm):
 
         # {{{ build layout
 
-        name_fields_layout = ["last_name", "first_name", "email"]
+        name_fields_layout = ["first_name", "last_name",  "email"]
         fields_layout = [Div(*name_fields_layout, css_class="well")]
 
         if getattr(settings, "RELATE_SHOW_INST_ID_FORM", True):
@@ -958,10 +958,10 @@ class UserForm(StyledModelForm):
         self.helper.layout = Layout(*fields_layout)
 
         self.helper.add_input(
-                Submit("submit_user", _("Update")))
+                Submit("submit_user", _("Update"),  css_class="btn btn-secondary"))
 
         self.helper.add_input(
-                Button("signout", _("Sign out"), css_class="btn btn-danger",
+                Button("signout", _("Sign Out"), css_class="btn btn-danger",
                        onclick=(
                            "window.location.href='%s'"
                            % reverse("relate-logout"))))
