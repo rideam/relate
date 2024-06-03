@@ -1032,7 +1032,7 @@ class FacilityFindingMiddleware:
         else:
             import ipaddress
             remote_address = ipaddress.ip_address(
-                    str(request.META["REMOTE_ADDR"]))
+                    str(request.META["HTTP_X_REAL_IP"]))
 
             facilities = set()
 
