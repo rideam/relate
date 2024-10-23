@@ -10,8 +10,8 @@
 
 {% block content %}
   {% if not user.is_authenticated %}
-    <div class="alert alert-info d-flex flex-row mb-4">
-      <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">
+    <div class="c-alert d-flex flex-row mb-4 py-2">
+{#      <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">#}
       <div class="ms-3"><b>Preview Mode</b> <br>
         <span>You are accessing the preview mode for this course. <a
           href="{% url student_sign_in_view %}?next={{ request.path }}" class="ms-2">Sign In &raquo;</a> to access full course content.</span>
@@ -184,15 +184,16 @@
       {% else %}
 
         {% if user.is_authenticated %}
-          <div class="alert alert-info d-flex flex-row mt-5">
-            <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">
+          <div class="c-alert d-flex flex-row mt-5 py-2">
+
+{#            <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">#}
 
             <div class="ms-3 d-flex align-items-center flex-wrap ">
-              <div><b>Ready to learn: {{ flow_desc.title }} ?</b></div>
+              <div>{% comment %}<i class="bi bi-info-circle me-3"></i>{% endcomment %} Start Learning </div>
               <button id="start-button" type="submit" name="start"
-                      class="btn btn-secondary text-decoration-none ms-3"
+                      class="btn btn-link text-decoration-none"
                       style="width: auto !important;">
-                Start &raquo;
+                {{ flow_desc.title }} &raquo;
               </button>
             </div>
 
@@ -214,7 +215,7 @@
 
     {% if may_start or past_sessions_and_properties %}
     {% else %}
-      <div class="alert alert-info">
+      <div class="c-alert py-2">
         <p>
           <i class="bi bi-exclamation-triangle"></i>
           {% blocktrans trimmed %}

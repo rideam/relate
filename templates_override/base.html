@@ -11,8 +11,9 @@
 
   <title>{% block title %}{{ relate_site_name }}{% endblock %}</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">
-  {#  <link href="https://fonts.googleapis.com/css2?family=Lato+Sans:wght@400;700&display=swap" rel="stylesheet">#}
+{#  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet">#}
+{#  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">#}
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;700&display=swap" rel="stylesheet">
 
   {% block bundle_loads %}
     <script src="{% static 'bundle-base.js' %}"></script>
@@ -76,6 +77,13 @@
                   </a>
                   <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
                     {% block navbar_dropdown_staff_menu_admin %}
+                      {% if user.is_staff %}
+                        <li><a class="dropdown-item" href="{% url 'relate-set_up_new_course' %}"
+                               >{% trans "Create Course" %}</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                      {% endif %}
                       {% if user.is_staff %}
                         <li><a class="dropdown-item text-danger" href="{% url 'admin:index' %}"
                                target="_blank">{% trans "Admin Site" %}</a></li>
@@ -200,9 +208,9 @@
 
 {% block footer %}
 
-  <div class="">
-    <img src="{% static 'images/footer.svg' %}" alt="" style="width: 100%">
-  </div>
+{#  <div class="">#}
+{#    <img src="{% static 'images/footer.svg' %}" alt="" style="width: 100%">#}
+{#  </div>#}
 {% endblock %}
 
 {% block page_bottom_javascript_extra %}{% endblock %}

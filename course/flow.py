@@ -1728,7 +1728,7 @@ def create_flow_page_visit(
     visit = FlowPageVisit(
         flow_session=flow_session,
         page_data=page_data,
-        remote_address=request.META["HTTP_X_REAL_IP"],
+        remote_address=request.META["REMOTE_ADDR"],
         user=user,
         is_submitted_answer=None)
 
@@ -2176,7 +2176,7 @@ def post_flow_page(
         answer_visit = FlowPageVisit()
         answer_visit.flow_session = flow_session
         answer_visit.page_data = fpctx.page_data
-        answer_visit.remote_address = request.META["HTTP_X_REAL_IP"]
+        answer_visit.remote_address = request.META["REMOTE_ADDR"]
 
         answer_data = answer_visit.answer = fpctx.page.answer_data(
                 page_context, fpctx.page_data.data,

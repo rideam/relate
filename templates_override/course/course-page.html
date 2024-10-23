@@ -4,9 +4,9 @@
 
 {% block page_content_advisories %}
   {% if course.hidden %}
-    <div class="alert alert-info d-flex flex-row">
-{#      <i class="bi bi-info-circle"></i>#}
-      <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">
+    <div class="c-alert py-2 d-flex flex-row">
+      <i class="bi bi-info-circle"></i>
+{#      <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">#}
 
       <div class="ms-4 d-flex flex-row align-items-center">
       {% trans "This course is only visible to course staff at the moment." %}
@@ -22,13 +22,13 @@
         role="button">{% trans "Sign in" %}&nbsp;&raquo;</a>
     </div>{% endcomment %}
 
-    <div class="alert alert-info d-flex flex-row mb-4">
+    <div class="c-alert d-flex flex-row mb-4 py-2">
       {% comment %}<i class="bi bi-lock"></i>
       {% url "relate-sign_in_choice" as relate-sign_in_choice %}{% endcomment %}
-      <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">
+{#      <img src="{% static 'images/preview.svg' %}" alt="" style="width: 3rem">#}
 
       <div class="ms-3"><b>Preview Mode</b> <br>
-        <span>You are accessing the preview mode for this course.  <a href="{% url student_sign_in_view %}?next={{ request.path }}" class="ms-2">Sign In &raquo;</a> to access full course content.</span></div>
+        <span>You are accessing the preview for this course.  <a href="{% url student_sign_in_view %}?next={{ request.path }}" class="ms-2">Sign In &raquo;</a> to access full course content.</span></div>
       {#      <a href="{% url student_sign_in_view %}?next={{ request.path }}" class="btn btn-sm btn-outline-primary ms-2">Sign In &raquo;</a>#}
     </div>
 

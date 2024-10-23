@@ -32,7 +32,7 @@
 {% endfor %}
 
 {% if fake_time %}
-  <div class="alert alert-info">
+  <div class="c-alert py-2">
     <i class="bi bi-info-circle"></i>
     {% blocktrans trimmed %}
     You are currently seeing a preview of what the site
@@ -46,7 +46,7 @@
 {% endif %}
 
 {% if pretend_facilities and add_pretend_facilities_header %}
-  <div class="alert alert-info">
+  <div class="c-alert py-2">
     <i class="bi bi-info-circle"></i>
     {% blocktrans trimmed with facilities=pretend_facilities|join:", "  %}
     You are currently seeing a preview of what the site
@@ -60,7 +60,7 @@
 {% endif %}
 
 {% if currently_impersonating and add_impersonation_header %}
-  <div class="alert alert-info">
+  <div class="c-alert py-2">
     <i class="bi bi-info-circle me-2"></i>
     {% trans "Now impersonating" %}: <b> {{ user.get_full_name }} ({{ user.username }} - {{ user.email }})</b>
     <a class="btn btn-danger btn-sm mx-3" onclick=stopImpersonate() role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>

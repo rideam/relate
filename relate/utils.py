@@ -121,7 +121,7 @@ def is_maintenance_mode(request):
         import ipaddress
 
         remote_address = ipaddress.ip_address(
-                str(request.META["HTTP_X_REAL_IP"]))
+                str(request.META["REMOTE_ADDR"]))
 
         for exc in exceptions:
             if remote_address in ipaddress.ip_network(str(exc)):

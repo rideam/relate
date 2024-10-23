@@ -1038,7 +1038,7 @@ def user_profile(request):
 
     return render(request, "user-profile-form.html", {
         "form": user_form,
-        "form_description": _("User Profile"),
+        "form_description": _("My Profile"),
         "is_requesting_inst_id": is_requesting_inst_id(),
         "enable_profile_form_js": (
             not is_inst_id_locked(request.user)

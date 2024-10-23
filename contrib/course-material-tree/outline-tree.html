@@ -1,0 +1,38 @@
+<div id="outline-tree" markdown="1">
+  <ul>
+    <li>
+      <b>Introduction</b>
+      <ul>
+        <li >
+          <a href="http://andreask.cs.illinois.edu/cs598apk-f15/notes/notes.pdf">Notes</a>
+        </li>
+      </ul>
+    </li>
+
+  </ul>
+</div>
+
+
+<script type="text/javascript">
+  $('#outline-tree').jstree({
+    "core": {
+      "themes": {
+        'name': 'default',
+        'responsive': true
+      }
+    },
+    "state": {
+      "key": "outline-cs598-f15", /* this should be unique per RELATE instance */
+      "filter": function (k) {
+        delete k.core.selected;
+        return k;
+      }
+    },
+    "plugins": ["state"]
+  })
+    .bind("select_node.jstree", function (e, data) {
+      var href = data.node.a_attr.href;
+      if (href.length > 1)
+        window.open(href, "_blank");
+    });
+</script>
