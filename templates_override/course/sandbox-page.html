@@ -1,0 +1,128 @@
+{% extends "course/course-base-with-markup.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}
+  {% if title %}
+    {% comment %} Translators: "[SB]" is abbreviation for "Sandbox" {% endcomment %}
+    {% blocktrans trimmed with title=title|safe %}
+    [SB] {{ title }}
+    {% endblocktrans %}
+  {% else %}
+    {% blocktrans %}Page Sandbox{% endblocktrans %}
+  {% endif %}
+  -
+  {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <div class="">
+    <div class="row">
+      <h1 class="my-4 text-secondary">{% trans "Page Sandbox" %}</h1>
+
+      {% if page_errors %}
+        <div class="alert alert-danger">
+          <i class="bi bi-x-circle"></i>
+          {{ page_errors }}
+        </div>
+      {% endif %}
+
+      {% if page_warnings %}
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle"></i>
+          {% blocktrans  trimmed %} Warnings were encountered when validating the page: {% endblocktrans %}
+
+          <ul>
+          {% for w in page_warnings %}
+            <li>{{ w.location }}: {{ w.text }}</li>
+          {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="">
+        {% crispy edit_form %}
+      </div>
+    </div>
+  </div>
+  <div class=" my-5">
+    <div class="row">
+      {% if have_valid_page %}
+        {{ body|safe }}
+
+        {% if page_form_html %}
+          <div class="">
+            {{ page_form_html|safe }}
+          </div>
+        {% endif %}
+
+        {% if feedback or correct_answer %}
+          <div class="alert
+            {% if feedback.correctness >= 1 %}
+              alert-success
+            {% elif feedback.correctness == 0 %}
+              alert-danger
+            {% else%}
+              alert-info
+            {% endif %}
+            ">
+            {% if feedback %}
+              <p>{{ feedback.feedback|safe }}</p>
+              {% if feedback.bulk_feedback %}
+                <p>{{ feedback.bulk_feedback|safe }}</p>
+              {% endif %}
+            {% endif %}
+            {% if correct_answer %}
+              <p>{{ correct_answer|safe }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% else %}
+        <span class="text-muted" style="margin-top:30px">{% trans "(Page preview appears here)" %}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# {{{ codemirror save -> preview #}
+
+  <script type="text/javascript">
+    function do_preview()
+    {
+      $("#submit-id-preview").click();
+    }
+
+    $("div#div_id_content div.CodeMirror").each(
+        function ()
+        {
+          var cm = this.CodeMirror;
+          cm.save = do_preview;
+        });
+
+  </script>
+
+  {# }}} #}
+
+  {# {{{ force focus onto cm #}
+
+  <script type="text/javascript">
+    // some form elements may try to autofocus (which is OK in a pure-page context, but really
+    // wrong in the sandbox)
+
+    function force_cm_focus()
+    {
+      $("div#div_id_content div.CodeMirror").each(
+          function ()
+          {
+            this.CodeMirror.focus();
+          });
+    }
+
+    setTimeout(force_cm_focus, 100);
+
+  </script>
+
+  {# }}} #}
+
+{% endblock %}

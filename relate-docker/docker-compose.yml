@@ -1,0 +1,44 @@
+services:
+  web:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: relate-docker/Dockerfile.dev
+    # image: relate:latest
+    #    restart: unless-stopped
+    command: /run-relate.sh
+    volumes:
+      - ../:/var/www/relate
+    environment:
+      DBHOST: db
+      DBUSER: postgres
+      DBPASS: postgres
+    ports:
+      - "8000:8000"
+    networks:
+      - relate-network
+
+  db:
+    image: postgres
+    #    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: relate
+    networks:
+      - relate-network
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      - DEV_ENV=true
+    networks:
+      - relate-network
+
+networks:
+  relate-network:
+    driver: bridge

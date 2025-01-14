@@ -1,0 +1,7 @@
+.git
+node_modules/
+tmp
+frontend-dist/
+static/
+db.sqlite3
+local_settings.py

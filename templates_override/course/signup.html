@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}
+  {{ form_description }} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-column align-items-center justify-content-center">
+    <div class="mt-5">
+      <h3 class="mb-4 text-secondary">{% trans "Sign Up" %}</h3>
+
+      <div class="">
+        <form method="post" class="form-horizontal">
+          {% crispy form %}
+          <input type="hidden" name="next" value="{{ next }}"/>
+        </form>
+      </div>
+
+      {% if relate_registration_enabled %}
+        {% comment %}<div class="d-flex flex-row justify-content-between">
+
+
+          <div class="ms-5">
+            {% url "relate-sign_up" as relate-sign_up %}
+            {% blocktrans trimmed %}
+              Already have an account?
+              <a href='{% url student_sign_in_view %}'>Sign In</a>
+            {% endblocktrans %}
+          </div>
+
+        </div>{% endcomment %}
+
+        <div class="mt-4">
+          {#          <i class="bi bi-chevron-left"></i>#}
+          {% url "relate-sign_in_choice" as relate-sign_in_choice %}
+          {% blocktrans trimmed %}
+            Already have an account?  <a href='{{ relate-sign_in_choice }}{{ next_uri }}'>Sign In</a>
+          {% endblocktrans %}
+        </div>
+      {% endif %}</div>
+  </div>
+{% endblock %}

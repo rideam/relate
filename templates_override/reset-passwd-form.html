@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <div class="d-flex flex-column justify-content-center align-items-center">
+    <div class="mt-5">
+
+    {% if form_description %}
+      <h4 class="mb-4 text-secondary">{{ form_description }}</h4>
+    {% endif %}
+    <div>
+      {% comment %}<style scoped>
+      .nav-tabs > li.active > a {background-color:#f5f5f5}
+      .well {border-top-width: 0px; box-shadow: none}
+    </style>{% endcomment %}
+      {% comment %}<ul class="nav nav-tabs">
+      <li class="{% if field == 'email' %}active{% endif %} ">
+        <a href="{% url 'relate-reset_password' %}">{% trans 'Email' %}</a>
+      </li>
+      <li class="{% if field == 'instid' %}active{% endif %} ">
+        <a href="{% url 'relate-reset_password' 'instid'%}">{% trans 'Institutional ID' %}</a>
+      </li>
+    </ul>{% endcomment %}
+      <div class="">
+        {{ form_text|safe }}
+        {% crispy form %}
+      </div>
+    </div>
+    </div>
+  </div>
+{% endblock %}

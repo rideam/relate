@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load static %}
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% block favicon %}{% endblock %}
+
+  <title>{% block title %}{{ relate_site_name }}{% endblock %}</title>
+
+{#  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet">#}
+{#  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">#}
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;700&display=swap" rel="stylesheet">
+
+  {% block bundle_loads %}
+    <script src="{% static 'bundle-base.js' %}"></script>
+    <script type="text/javascript">
+      const bootstrap = rlBase.bootstrap;
+      const rlUtils = rlBase.rlUtils;
+    </script>
+  {% endblock %}
+
+  {% block head_assets_form_media %}
+    {{ form.media }}
+  {% endblock %}
+
+  {% block header_extra %}{% endblock %}
+</head>
+
+<body class="d-flex flex-column justify-content-between" style="min-height: 100vh">
+
+{% if site_announcement %}
+  <div class="d-block px-3 py-2 text-center"
+       style="background: linear-gradient(120deg, #082542, #04396b, #319795, #319795 90%); color: white">
+    {{ site_announcement|safe }}
+  </div>
+{% endif %}
+
+{% block fixed_navbar %}
+  {#      <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 border-bottom shadow-sm">#}
+  <nav class="navbar navbar-expand-lg navbar-light mb-4">
+    <div class="container">
+      <a class="navbar-brand font-bold text-secondary"
+         href="{% block brand_link %}{% url 'relate-home' %}{% endblock %}">
+        {% block brand %}{{ relate_site_name }}{% endblock %}
+      </a>
+
+      <button class="navbar-toggler btn btn-outline-secondary" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent"
+              aria-expanded="false"
+              aria-label="Toggle navigation">
+        {#        <span class="navbar-toggler-icon"></span>#}
+        {#        <i class="bi bi-justify-right"></i>#}
+        {% trans "Menu" %}
+        <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+             width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10"/>
+        </svg>
+
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav flex-grow-1">
+          {% if not maintenance_mode %}
+            {% block navbar %}{% endblock %}
+
+            {% block navbar_dropdown_staff %}
+              {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                <li class="nav-item dropdown">
+                  <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                     class="nav-link dropdown-toggle">
+                    {% trans "Staff" %}
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
+                    {% block navbar_dropdown_staff_menu_admin %}
+                      {% if user.is_staff %}
+                        <li><a class="dropdown-item" href="{% url 'relate-set_up_new_course' %}"
+                               >{% trans "Create Course" %}</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                      {% endif %}
+                      {% if user.is_staff %}
+                        <li><a class="dropdown-item text-danger" href="{% url 'admin:index' %}"
+                               target="_blank">{% trans "Admin Site" %}</a></li>
+                      {% endif %}
+                    {% endblock %}
+                    {% block navbar_dropdown_staff_menu_purge_page_view_data %}
+                      {% if user.is_superuser or pperm.use_admin_interface %}
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger"
+                               href="{% url 'relate-purge_page_view_data' %}">{% trans "Purge Page View Data" %}</a>
+                        </li>
+                      {% endif %}
+                    {% endblock %}
+                    {% block navbar_dropdown_staff_menu_exam %}
+                      {% if perms.course.can_issue_exam_tickets %}
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><b class="dropdown-header text-secondary">{% trans "Exams" %}</b></li>
+                        <li><a class="dropdown-item"
+                               href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue Exam Tickets" %}</a></li>
+                        <li><a class="dropdown-item"
+                               href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam Check-in" %}</a></li>
+                      {% endif %}
+                    {% endblock %}
+
+                    {% block navbar_dropdown_staff_menu_trouble_shoot %}
+                      {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                        <li class="dropdown-divider"></li>
+                        <li><b class="dropdown-header text-secondary">{% trans "Test/Troubleshoot" %}</b></li>
+                        {% if currently_impersonating %}
+                          <li><a class="dropdown-item" onclick="stopImpersonate()">{% trans "Stop impersonating" %}</a>
+                          </li>
+                        {% else %}
+                          <li><a class="dropdown-item"
+                                 href="{% url 'relate-impersonate' %}">{% trans "Impersonate user" %}</a></li>
+                        {% endif %}
+                        {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
+                          <li><a class="dropdown-item"
+                                 href="{% url 'relate-set_fake_time' %}">{% trans "Set fake time" %}</a></li>
+                        {% endif %}
+                        {% if pperm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                          <li><a class="dropdown-item"
+                                 href="{% url 'relate-set_pretend_facilities' %}">{% trans "Pretend to be in facilities" %}</a>
+                          </li>
+                        {% endif %}
+                      {% endif %}
+                    {% endblock %}
+                  </ul>
+                </li>
+              {% endif %}
+            {% endblock %}
+
+            {% if user.is_authenticated %}
+              <li class="nav-item dropdown">
+                <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                   class="nav-link dropdown-toggle">
+                  {% trans "User Menu" %}
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
+                  <li><a class="dropdown-item" href="{% url 'relate-user_profile' %}">{% trans "My Profile" %}</a></li>
+                  <li><a class="dropdown-item" href="{% url 'relate-logout' %}">{% trans "Log Out" %}</a></li>
+                </ul>
+              </li>
+            {% endif %}
+
+
+            <li class="ms-auto">
+              {% block preview_status %}
+              {% endblock %}
+
+              {% if user.is_authenticated %}
+                {% comment %}<a class="link-secondary text-decoration-none" href="{% url 'relate-user_profile' %}">
+                  <i class="bi bi-person mx-1" style="font-size: 1.4rem"></i>
+                  {% blocktrans trimmed with username=user.first_name %}
+                    {{ username }}
+                  {% endblocktrans %}</a>
+                {% if currently_impersonating %}
+                  {% trans "(impersonated)" %}
+                {% endif %}{% endcomment %}
+              {% else %}
+                {# Error pages don't seem to run template context processors, so #}
+                {# this variable might not be available... #}
+                {% if student_sign_in_view %}
+                  <a class="btn btn-outline-secondary"
+                     href="{% url student_sign_in_view %}">{% trans "Sign In" %}</a>
+                {% endif %}
+              {% endif %}
+            </li>
+
+          {% endif %} {# not maintenance_mode #}
+
+        </ul>
+      </div>
+    </div>
+  </nav>
+{% endblock %}
+
+{% block pre_root_container %}
+{% endblock %}
+
+{% block root_container %}
+  <div class="container mb-5 flex-grow-1">
+    <main>
+      {% block base_page_top %}{% include "base-page-top.html" %}{% endblock %}
+
+      {% block nav_recommendations %}
+      {% endblock %}
+
+      {% block content %}
+      {% endblock %}
+    </main>
+
+  </div>
+{% endblock %}
+
+{% block post_root_container %}
+
+{% endblock %}
+
+{% block footer %}
+
+{#  <div class="">#}
+{#    <img src="{% static 'images/footer.svg' %}" alt="" style="width: 100%">#}
+{#  </div>#}
+{% endblock %}
+
+{% block page_bottom_javascript_extra %}{% endblock %}
+
+{% block page_bottom_javascript %}
+  {% if currently_impersonating and add_impersonation_header %}
+    <script type="text/javascript">
+      function stopImpersonate() {
+        $("#stop-impersonate")
+          .html(
+            '<img src="{% static "images/busy.gif" %}" alt="Busy indicator">')
+          .show();
+        var jqxhr = $.ajax(
+          "{% url "relate-stop_impersonating" %}",
+          {
+            type: "POST",
+            data: {"stop_impersonating": true},
+            beforeSend: function (xhr, settings) {
+              var csrftoken = rlUtils.getCookie('relate_csrftoken');
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+          })
+          .done(function () {
+            window.location.reload();
+          })
+      }
+    </script>
+  {% endif %}
+
+{% endblock %}
+</body>
+</html>
