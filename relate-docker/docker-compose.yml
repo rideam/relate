@@ -4,30 +4,97 @@ services:
     build:
       context: ..
       dockerfile: relate-docker/Dockerfile.dev
-    # image: relate:latest
     #    restart: unless-stopped
     command: /run-relate.sh
     volumes:
       - ../:/var/www/relate
     environment:
-      DBHOST: db
-      DBUSER: postgres
-      DBPASS: postgres
+      - DBHOST=db
+      - DBUSER=postgres
+      - DBPASS=postgres
     ports:
       - "8000:8000"
-    networks:
-      - relate-network
+    depends_on:
+      db:
+        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      mailhog:
+        condition: service_started
+
+
+#  redis:
+#    image: redis
+#    command: redis-server --appendonly yes
+#    volumes:
+#      - redis_data:/data
+#    healthcheck:
+#      test: bash -c 'exec 6<>/dev/tcp/redis/6379'
+#      interval: 2s
+#      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management web UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ../static:/var/www/relate/static
+      - ../media:/var/www/relate/media
+    ports:
+      - "80:80"
+    depends_on:
+      - web
 
   db:
     image: postgres
     #    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: relate
-    networks:
-      - relate-network
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=relate
+    healthcheck:
+      test: pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}
+      interval: 2s
+      retries: 10
+
+  celery:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: relate-docker/Dockerfile.dev
+    command: poetry run celery -A relate worker -l INFO --concurrency 8
+    volumes:
+      - ../:/var/www/relate
+    environment:
+      - C_FORCE_ROOT=true
+      - DBHOST=db
+      - DBUSER=postgres
+      - DBPASS=postgres
+    depends_on:
+      db:
+        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+      rabbitmq:
+        condition: service_started
 
   mailhog:
     image: mailhog/mailhog
@@ -36,9 +103,14 @@ services:
       - "8025:8025"
     environment:
       - DEV_ENV=true
-    networks:
-      - relate-network
+#    networks:
+#      - relate-network
 
-networks:
-  relate-network:
-    driver: bridge
+#networks:
+#  relate-network:
+#    driver: bridge
+
+volumes:
+  postgres_data:
+#  redis_data:
+  rabbitmq_data:

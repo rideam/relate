@@ -29,13 +29,13 @@ shell: ## Get a Django shell
 	@docker compose exec web poetry run python manage.py shell
 
 collectstatic: ## Collect static
-	@docker compose exec web python manage.py collectstatic
+	@docker compose exec web poetry run python manage.py collectstatic
 
 dbshell: ## Get a Database shell
 	@docker compose exec db psql -U postgres relate
 
 test: ## Run Django tests
-	@docker compose exec web python manage.py test
+	@docker compose exec web poetry run python manage.py test
 
 init: start-bg migrations migrate  ## Quickly get up and running (start containers and migrate DB)
 

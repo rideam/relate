@@ -16,15 +16,14 @@
 
 {% block content %}
   {% block form_description %}
-    {% if form_description %}
-      <h4 class="mt-5 mb-4 px-3 text-secondary">{{ form_description }}</h4>
-{#      <hr>#}
-      {{ form_text|safe }}
-    {% endif %}
+  {% if form_description %}
+    <h4 class="mt-5 mb-5">{{ form_description }}</h4>
+  {{ form_text|safe }}
+  {% endif %}
   {% endblock %}
   {% block form %}
-    <div class="px-4">
-      {% crispy form %}
-    </div>
+  <div class="">
+    {% crispy form %}
+  </div>
   {% endblock %}
 {% endblock %}
