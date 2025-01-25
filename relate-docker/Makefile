@@ -28,6 +28,9 @@ migrate: ## Run DB migrations in the container
 shell: ## Get a Django shell
 	@docker compose exec web poetry run python manage.py shell
 
+static: ## Collect static
+	@docker compose exec web sh collectstatic.sh
+
 collectstatic: ## Collect static
 	@docker compose exec web poetry run python manage.py collectstatic
 

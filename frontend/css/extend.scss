@@ -1,5 +1,5 @@
 //$primary: #371295;
-$secondary: #082542;
+$secondary: #794bec;
 //$secondary: #410c96;
 
 //$secondary: #448aff;
@@ -692,6 +692,22 @@ p.topic-title {
 //    }
 //  }
 //}
+
+
+.btn-primary {
+  color: #fff;
+  background-color: #4c2095;
+  border-color:#4c2095;
+}
+.btn-primary::before {
+  background-color: #fff;
+}
+.btn-primary:active, .btn-primary:hover, .btn-primary.focus, .btn-primary:focus, .btn-primary.active {
+  color: #fff !important;
+  background-color: #4c2095 !important;
+  border-color: #4c2095 !important;
+  // #8710d8
+}
 
 
 
@@ -1706,9 +1722,9 @@ section {
 
 
 
-.form-label {
-  font-weight: 600;
-}
+//.form-label {
+//  font-weight: 600;
+//}
 
 .hero-section {
   background: url("/static/images/hero-bg.webp") 50% 0 no-repeat fixed, #f8f8ff;
