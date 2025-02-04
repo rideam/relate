@@ -120,7 +120,7 @@
                     {# Error pages don't seem to run template context processors, so #}
                     {# this variable might not be available... #}
                     {% if student_sign_in_view %}
-                      <a class="link-secondary" href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>
+                      <a class="link-secondary" href="{% url student_sign_in_view %}">{% trans "Login" %}</a>
                     {% endif %}
                   {% endif %}
                 </li>
