@@ -59,12 +59,6 @@ npm-build: ## Runs npm build in the container (for production assets)
 npm-dev: ## Runs npm dev in the container
 	@docker compose exec web npm run dev
 
-npm-watch: ## Runs npm watch in the container (recommended for dev)
-	@docker compose exec web npm run dev-watch
-
-npm-type-check: ## Runs the type checker on the front end TypeScript code
-	@docker compose exec web npm run type-check
-
 upgrade: build start-bg migrations migrate npm-install
 
 .PHONY: help
