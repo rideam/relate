@@ -3,7 +3,7 @@
     "@benrbray/prosemirror-math": "^1.0.0",
     "@codemirror/autocomplete": "^6.18.3",
     "@codemirror/commands": "^6.7.1",
-    "@codemirror/lang-markdown": "^6.2.0",
+    "@codemirror/lang-markdown": "^6.3.2",
     "@codemirror/lang-python": "^6.1.6",
     "@codemirror/language": "^6.10.8",
     "@codemirror/legacy-modes": "^6.4.2",
@@ -38,11 +38,11 @@
     "prosemirror-keymap": "^1.2.2",
     "prosemirror-markdown": "^1.13.1",
     "prosemirror-menu": "^1.2.4",
-    "prosemirror-model": "^1.23.0",
+    "prosemirror-model": "^1.24.1",
     "prosemirror-schema-basic": "^1.2.3",
-    "prosemirror-schema-list": "^1.4.1",
+    "prosemirror-schema-list": "^1.5.0",
     "prosemirror-state": "^1.4.3",
-    "prosemirror-view": "^1.37.0",
+    "prosemirror-view": "^1.37.2",
     "select2": "^4.0.5",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
     "video.js": "^8.21.0"
@@ -51,7 +51,7 @@
     "sass": "https://github.com/twbs/bootstrap/issues/40849"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-commonjs": "^28.0.2",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
