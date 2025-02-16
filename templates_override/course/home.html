@@ -8,8 +8,8 @@
         <section class="hero-section">
             <div class="hero-content container">
                 <div class="hero-text">
-                    <h1 class="text-relate">{% blocktrans with RELATE=relate_site_name %}Transform Your Learning with
-                        {{ RELATE }} {% endblocktrans %}</h1>
+                    <h1 class="text-relate">{% blocktrans with RELATE=relate_site_name %}Your Journey To Success Begins
+                        Here{% endblocktrans %}</h1>
 
                     <p>Get Access to Learning Material and Take Control of Your Learning Journey.</p>
                     <div style="display: flex; column-gap: .5rem; margin-top: 3rem;" class="hero-cta-btn">
@@ -51,11 +51,11 @@
                     </div>
 
                     <div class="category">
-                        <h3 class="text-relate">Physics</h3>
+                        <h3 class="text-relate">Computer Science</h3>
                     </div>
 
                     <div class="category">
-                        <h3 class="text-relate">Computer Science</h3>
+                        <h3 class="text-relate">Physics</h3>
                     </div>
 
                     <div class="category">
@@ -148,9 +148,7 @@
                         {% endblock %}
                     {% endif %}
                 {% else %}
-                    {% blocktrans trimmed with RELATE=relate_site_name %} There are no courses hosted on this
-                        {{ RELATE }}
-                        site.
+                    {% blocktrans trimmed with RELATE=relate_site_name %} No subjects to show
                     {% endblocktrans %}
                     {% if not user.is_authenticated %}
                         {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}

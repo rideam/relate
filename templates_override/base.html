@@ -42,7 +42,7 @@
             {% endblock %}
           </a>
 
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+          <button class="navbar-toggler navbar-toggler-cs" type="button" data-bs-toggle="collapse"
                                                        data-bs-target="#navbarSupportedContent"
                                                        aria-controls="navbarSupportedContent"
                                                        aria-expanded="false"
@@ -104,6 +104,20 @@
                   {% endif %}
                 {% endblock %}
 
+
+              {% if user.is_authenticated %}
+                  <li class="nav-item relate-dropdown-menu">
+                    <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                       > {% comment %}class="nav-link dropdown-toggle"{% endcomment %}
+                      {% trans "User Menu" %}
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
+                      <li><a class="dropdown-item" href="{% url 'relate-user_profile' %}">{% trans "My Profile" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'relate-logout' %}">{% trans "Log Out" %}</a></li>
+                    </ul>
+                  </li>
+                {% endif %}
+
                 <li class="ms-auto">
                   {% block preview_status %}
                   {% endblock %}
@@ -111,7 +125,7 @@
                   {% if user.is_authenticated %}
                     <a class="link-secondary" href="{% url 'relate-user_profile' %}">
                       {% blocktrans trimmed with username=user.username %}
-                        Signed in as {{ username }}
+                        {{ username }}
                       {% endblocktrans %}</a>
                     {% if currently_impersonating %}
                       {% trans "(impersonated)" %}

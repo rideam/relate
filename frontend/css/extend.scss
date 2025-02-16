@@ -1837,3 +1837,27 @@ footer span img {
 }
 
 
+.navbar-toggler-cs {
+  padding: var(--#{$prefix}navbar-toggler-padding-y) var(--#{$prefix}navbar-toggler-padding-x);
+  @include font-size(var(--#{$prefix}navbar-toggler-font-size));
+  line-height: 1;
+  color: var(--#{$prefix}navbar-color);
+  background-color: transparent; // remove default button style
+  border: none;
+  //border: var(--#{$prefix}border-width) solid var(--#{$prefix}navbar-toggler-border-color); // remove default button style
+  //@include border-radius(var(--#{$prefix}navbar-toggler-border-radius));
+  @include transition(var(--#{$prefix}navbar-toggler-transition));
+
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  &:focus {
+    text-decoration: none;
+    outline: 0;
+    //box-shadow: 0 0 0 var(--#{$prefix}navbar-toggler-focus-width);
+    box-shadow: none;
+  }
+}
+
