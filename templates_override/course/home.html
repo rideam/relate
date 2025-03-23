@@ -41,7 +41,7 @@
             </div>
         </section>
 
-        <section class="home-course-categories">
+       {% comment %} <section class="home-course-categories">
             <div class="container home-course-categories-content">
                 <h3 class="text-relate">Featured</h3>
                 <p style="margin: 1rem 0;">Ready to learn 👋.</p>
@@ -70,7 +70,7 @@
 
                 </div>
             </div>
-        </section>
+        </section>{% endcomment %}
 
 
         {% include 'course/components/footer.html' %}
@@ -101,10 +101,10 @@
 
                                     <a class="text-decoration-none "
                                        href="{% url 'relate-course_page' course.identifier %}">
-                                        <div class="card me-3 mb-3" style="width: 18rem;">
+                                        <div class="card me-3 mb-3 subject-card" style="">
                                             {#                                        <h5 class="card-header">{{ course.name }}</h5>#}
                                             <div class="card-body">
-                                                <h5 class="">{{ course.name }}</h5>
+                                                <h5 class="text-primary">{{ course.name }}</h5>
                                                 <p class="text-muted card-text">{{ course.number }} </p> {% comment %}{{ course.time_period }}{% endcomment %}
                                                 {% comment %}<a class="btn btn-primary"
                                                    href="{% url 'relate-course_page' course.identifier %}"

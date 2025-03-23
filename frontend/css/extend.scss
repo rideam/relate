@@ -469,8 +469,6 @@ div.rendered_html div.highlight > pre {
 /* vim: set foldmethod=marker:sw=2 */
 
 
-
-
 //ul {
 //  list-style-type: none;
 //
@@ -1605,9 +1603,17 @@ section {
 
 .course-categories {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(calc(33.33% - 2rem), 1fr));
+  //grid-template-columns: repeat(auto-fit, minmax(calc(33.33% - 2rem), 1fr));
   grid-gap: 2rem;
   padding: 2rem 0;
+}
+
+@media (min-width: 768px) {
+  .course-categories {
+
+    grid-template-columns: repeat(auto-fit, minmax(calc(33.33% - 2rem), 1fr));
+
+  }
 }
 
 .category {
@@ -1861,3 +1867,12 @@ footer span img {
   }
 }
 
+
+.text-primary {
+  color: #4c2095 !important;
+}
+
+.subject-card {
+  width: 18rem;
+  border-top: 4px solid #4c2095;
+}

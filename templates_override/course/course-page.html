@@ -11,9 +11,9 @@
     </div>
   {% endif %}
   {% if not user.is_authenticated %}
-    <div class="relate-well">
-      {% trans "You're not currently signed in." %}
-      <a class="btn btn-lg btn-primary" href="{% url student_sign_in_view %}?next={{ request.path }}"
+    <div class="relate-well flex flex-row justify-content-start mt-4">
+     {% comment %} {% trans "You're not currently signed in." %}{% endcomment %}
+      <a class="btn btn-primary" href="{% url student_sign_in_view %}?next={{ request.path }}"
         role="button">{% trans "Sign in" %}&nbsp;&raquo;</a>
     </div>
   {% else %}
