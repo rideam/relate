@@ -1,0 +1,47 @@
+@import "tailwindcss" prefix(tw);
+
+/*@config "../../tailwind.config.js";*/
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*@layer base {*/
+
+/*    h1 {*/
+/*        @apply text-2xl;*/
+/*    }*/
+
+/*    h2 {*/
+/*        @apply text-xl;*/
+/*    }*/
+
+/*    h3 {*/
+/*        @apply text-lg;*/
+/*    }*/
+/*}*/
+
+/*@tailwind components;*/
+
+/*@layer components {*/
+@utility btn-link {
+    @apply font-medium text-blue-600 hover:text-blue-500;
+}
+
+@utility btn-primary {
+    @apply items-center justify-center cursor-default
+    text-white bg-blue-700 dark:text-white hover:bg-blue-800 focus:ring-2 focus:ring-gray-300
+    font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2 dark:hover:bg-gray-700
+    focus:outline-none dark:focus:ring-gray-800;
+    /*rounded-md border border-transparent bg-blue-700
+    px-4 py-2 font-medium text-white text-center text-sm
+    shadow-sm hover:bg-blue-800;*/
+}
+
+@utility btn-gradient {
+    @apply text-white bg-gradient-to-br cursor-default from-purple-600 to-blue-500 hover:bg-gradient-to-bl
+    focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg
+    text-sm px-5 py-2.5 text-center me-2 mb-2;
+}
+
+@utility selected-frame-group-card {
+    @apply bg-blue-200 dark:bg-blue-600;
+}

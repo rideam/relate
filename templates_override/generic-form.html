@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}
+  {{ form_description }} - {{ relate_site_name }}
+{% endblock %}
+
+{# keep this in sync with course/templates/course/generic-course-form.html #}
+{# keep this in sync with course/templates/course/manage-auth-tokens.html #}
+{% block head_assets_form_media %}
+  {{ form.media }}
+{% endblock %}
+
+{% block content %}
+  {% block form_description %}
+  {% if form_description %}
+    <h4 class="mt-5 mb-5">{{ form_description }}</h4>
+  {{ form_text|safe }}
+  {% endif %}
+  {% endblock %}
+  {% block form %}
+  <div class="">
+    {% crispy form %}
+  </div>
+  {% endblock %}
+{% endblock %}

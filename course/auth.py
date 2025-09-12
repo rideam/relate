@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import sys
 import re
 from typing import (
     TYPE_CHECKING,
@@ -979,6 +980,7 @@ class UserForm(StyledModelForm):
 @login_required
 def user_profile(request):
     user_form = None
+    print(f'#### profile update ', file=sys.stdout)
 
     def is_inst_id_locked(user):
         if is_inst_id_editable_before_validation():
@@ -1002,6 +1004,7 @@ def user_profile(request):
             )
             if user_form.is_valid():
                 if user_form.has_changed():
+                    print(f'#### HERE {user_form.fields["first_name"]} ', file = sys.stdout)
                     user_form.save()
                     messages.add_message(request, messages.SUCCESS,
                             _("Profile data updated."))

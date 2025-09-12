@@ -13,3 +13,6 @@ $bootstrap-icons-font-file: "./fonts/bootstrap-icons";
 // Ideally, these should be separate, but they use Bootstrap classes.
 @import "./codemirror.scss";
 @import "./prosemirror.scss";
+
+// Custom
+@import "./extend.scss";

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load static %}
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% block favicon %}{% endblock %}
+
+    <title>{% block title %}{{ relate_site_name }}{% endblock %}</title>
+
+    {% block bundle_loads %}
+      <script src="{% static 'bundle-base.js' %}"></script>
+        <script>
+    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark')
+    }
+</script>
+
+    {% endblock %}
+
+    {% block head_assets_form_media %}
+      {{ form.media }}
+    {% endblock %}
+
+    {% block header_extra %}{% endblock %}
+  </head>
+
+  <body class="mathjax_ignore dark:bg-gray-900">
+    {% block fixed_navbar %}
+      <nav class="navbar navbar-expand-lg secondary-color border-bottom {% if user.is_authenticated %}mb-4{% endif %}">
+        <div class="container">
+          <a class="navbar-brand"
+             href="{% block brand_link %}{% url 'relate-home' %}{% endblock %}" >
+            {%block brand %}
+
+             <div style='display: flex; justify-content: baseline; column-gap: .3rem'>
+                    {% comment %} <img src='{% static 'img/logo.svg' %}'> {% endcomment %}
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd"
+                              d="M11.6116 3.30203C11.8551 3.23273 12.1119 3.23267 12.3553 3.30176C12.8729 3.44863 13.3952 3.58485 13.9192 3.72153C16.38 4.36334 18.8793 5.01516 21.1028 6.82618L22.1267 7.66016C22.542 7.99845 22.7498 8.49918 22.75 9V16C22.75 16.4142 22.4142 16.75 22 16.75C21.5858 16.75 21.25 16.4142 21.25 16V11.0567L21.0871 11.1896C20.3166 11.8183 19.5128 12.3066 18.6888 12.7029C18.7282 12.794 18.75 12.8944 18.75 13V17.2939C18.75 18.4272 18.0548 19.4444 16.9989 19.8561L12.9989 21.4156C12.3565 21.666 11.6435 21.666 11.0011 21.4156L7.0011 19.8561C5.94522 19.4444 5.25 18.4272 5.25 17.2939V13C5.25 12.8918 5.27292 12.7889 5.31418 12.696C4.48383 12.2973 3.67373 11.8063 2.89724 11.1738L1.8733 10.3398C1.04264 9.66327 1.04221 8.33693 1.87215 7.65967L2.91292 6.81037C5.12037 5.00904 7.60193 4.36111 10.0445 3.72335C10.5697 3.58623 11.0931 3.44957 11.6116 3.30203ZM21.25 9.0006C21.25 8.91051 21.2136 8.85102 21.1794 8.8232L20.1555 7.98922C18 6.5 16.0794 5.84319 13.6399 5.20216C13.1035 5.06121 12.5519 4.91626 11.984 4.75559C11.4135 4.91742 10.8599 5.06306 10.3217 5.20465C7.9018 5.84128 5.79323 6.39601 3.86128 7.97253L2.8205 8.82184C2.78631 8.84973 2.74996 8.90931 2.75 8.9994C2.75004 9.08949 2.78643 9.14898 2.82058 9.1768L3.84453 10.0108C5.79285 11.5977 7.92065 12.1568 10.3601 12.7978C10.8965 12.9388 11.4481 13.0837 12.016 13.2444C12.5865 13.0826 13.14 12.937 13.6782 12.7954C16.0981 12.1587 18.2068 11.604 20.1387 10.0275L21.1795 9.17816C21.2137 9.15029 21.25 9.09054 21.25 9.0006ZM13.9555 14.2766C15.0553 13.9895 16.163 13.7003 17.25 13.3046V17.2939C17.25 17.8091 16.934 18.2714 16.454 18.4585L12.454 20.018C12.1621 20.1318 11.8379 20.1318 11.546 20.018L7.54596 18.4585C7.06601 18.2714 6.75 17.8091 6.75 17.2939V13.2961C7.84877 13.6963 8.96869 13.9884 10.0808 14.2785C10.6048 14.4151 11.1271 14.5514 11.6447 14.6982C11.8881 14.7673 12.145 14.7673 12.3884 14.698C12.9069 14.5504 13.4303 14.4138 13.9555 14.2766Z"
+                              fill="black"/>
+                    </svg>
+                    <span>{{ relate_site_name }}</span>
+                    </div>
+            {% endblock %}
+          </a>
+
+          <button class="navbar-toggler navbar-toggler-cs" type="button" data-bs-toggle="collapse"
+                                                       data-bs-target="#navbarSupportedContent"
+                                                       aria-controls="navbarSupportedContent"
+                                                       aria-expanded="false"
+                                                       aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav flex-grow-1">
+              {% if not maintenance_mode %}
+                {% block navbar %}{% endblock %}
+
+                {% block navbar_dropdown_staff %}
+                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                    <li class="nav-item relate-dropdown-menu">
+                      <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                        {% trans "Staff" %}
+                      </a>
+                      <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
+                        {% block navbar_dropdown_staff_menu_admin %}
+                          {% if user.is_staff %}
+                            <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_purge_page_view_data %}
+                          {% if user.is_superuser or pperm.use_admin_interface %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'relate-purge_page_view_data' %}">{% trans "Purge page view data" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_exam %}
+                          {% if perms.course.can_issue_exam_tickets %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">{% trans "Exams" %}</h6></li>
+                            <li><a class="dropdown-item" href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+
+                        {% block navbar_dropdown_staff_menu_trouble_shoot %}
+                          {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                            <li class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">{% trans "Test/Troubleshoot" %}</h6></li>
+                            {% if currently_impersonating %}
+                              <li><a class="dropdown-item" onclick="stopImpersonate()">{% trans "Stop impersonating" %}</a></li>
+                            {% else %}
+                              <li><a class="dropdown-item" href="{% url 'relate-impersonate' %}">{% trans "Impersonate user" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
+                              <li><a class="dropdown-item" href="{% url 'relate-set_fake_time' %}">{% trans "Set fake time" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                              <li><a class="dropdown-item" href="{% url 'relate-set_pretend_facilities' %}">{% trans "Pretend to be in facilities" %}</a></li>
+                            {% endif %}
+                          {% endif %}
+                        {% endblock %}
+                      </ul>
+                    </li>
+                  {% endif %}
+                {% endblock %}
+
+
+              {% if user.is_authenticated %}
+                  <li class="nav-item relate-dropdown-menu">
+                    <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                       > {% comment %}class="nav-link dropdown-toggle"{% endcomment %}
+                      {% trans "User Menu" %}
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
+                      <li><a class="dropdown-item" href="{% url 'relate-user_profile' %}">{% trans "My Profile" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'relate-logout' %}">{% trans "Log Out" %}</a></li>
+                    </ul>
+                  </li>
+                {% endif %}
+
+                <li class="ms-auto">
+                  {% block preview_status %}
+                  {% endblock %}
+
+                  {% if user.is_authenticated %}
+                    <a class="link-secondary" href="{% url 'relate-user_profile' %}">
+                      {% blocktrans trimmed with username=user.username %}
+                        {{ username }}
+                      {% endblocktrans %}</a>
+                    {% if currently_impersonating %}
+                      {% trans "(impersonated)" %}
+                    {% endif %}
+                  {% else %}
+                    {# Error pages don't seem to run template context processors, so #}
+                    {# this variable might not be available... #}
+                    {% if student_sign_in_view %}
+                      <a class="link-secondary" href="{% url student_sign_in_view %}">{% trans "Login" %}</a>
+                    {% endif %}
+                  {% endif %}
+
+
+
+                </li>
+
+              {% endif %} {# not maintenance_mode #}
+
+
+
+            </ul>
+          </div>
+        </div>
+      </nav>
+    {% endblock %}
+
+    <div class="">
+        {% block base_page_top %}{% include "base-page-top.html" %}{% endblock %}
+    </div>
+
+
+    {% block pre_root_container %}{% endblock %}
+
+    {% block root_container %}
+      <div class="container">
+        <main>
+
+
+          {% block nav_recommendations %}
+          {% endblock %}
+
+          {% block content %}
+          {% endblock %}
+        </main>
+
+      </div>
+    {% endblock %}
+
+    {% block post_root_container %}{% endblock %}
+
+    {% block footer %}{% endblock %}
+
+    {% block page_bottom_javascript_extra %}{% endblock %}
+
+    {% block page_bottom_javascript %}
+      {% if currently_impersonating and add_impersonation_header %}
+        <script type="text/javascript">
+          function stopImpersonate() {
+            $("#stop-impersonate")
+                .html(
+                    '<img src="{% static "images/busy.gif" %}" alt="Busy indicator">')
+                .show();
+              var jqxhr = $.ajax(
+                  "{% url "relate-stop_impersonating" %}",
+                  {
+                      type: "POST",
+                      data: {"stop_impersonating": true},
+                      beforeSend: function (xhr, settings) {
+                          var csrftoken = rlUtils.getCookie('relate_csrftoken');
+                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                      }
+                  })
+                  .done(function () {
+                      window.location.reload();
+                  })
+          }
+        </script>
+      {% endif %}
+
+    {% endblock %}
+
+    {# {{{ toast #}
+
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+      <div id="relate-ui-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+          <strong class="me-auto text-danger" id="relate-ui-toast-title">{% trans "Error" %}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div id="relate-ui-toast-body" class="toast-body">
+        </div>
+      </div>
+    </div>
+
+    {# }}} #}
+
+  </body>
+</html>
