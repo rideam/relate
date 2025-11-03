@@ -56,11 +56,17 @@ from course.auth import get_pre_impersonation_user
 from course.constants import (
     FLOW_PERMISSION_CHOICES,
     FLOW_RULE_KIND_CHOICES,
-    flow_rule_kind,
-    participation_permission as pperm,
-    participation_status,
+    FlowRuleKind,
+    ParticipationPermission as PPerm,
+    ParticipationStatus,
 )
-from course.content import get_course_repo
+from course.content import (
+    access_rule_ta,
+    get_course_repo,
+    get_processed_page_chunks,
+    get_staticpage_desc,
+    grading_rule_ta,
+)
 from course.enrollment import (
     get_participation_for_request,
     get_participation_permissions,
@@ -78,12 +84,14 @@ from course.utils import (
     get_course_specific_language_choices,
     render_course_page,
 )
+from course.validation import ValidationContext
 from relate.utils import (
     HTML5DateInput,
     HTML5DateTimeInput,
     RelateHttpRequest,
     StyledForm,
     StyledModelForm,
+    is_authed,
     string_concat,
 )
 
@@ -93,6 +101,7 @@ from relate.utils import (
 if TYPE_CHECKING:
     from accounts.models import User
     from course.content import FlowDesc
+    from course.repo import RevisionID_ish
 
 # }}}
 
@@ -105,15 +114,15 @@ NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")
 def home(request: http.HttpRequest) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(request)
 
-    current_courses = []
-    past_courses = []
+    current_courses: list[Course] = []
+    past_courses: list[Course] = []
     for course in Course.objects.filter(listed=True):
         participation = get_participation_for_request(request, course)
 
         show = True
         if course.hidden:
             perms = get_participation_permissions(course, participation)
-            if (pperm.view_hidden_course_page, None) not in perms:
+            if (PPerm.view_hidden_course_page, None) not in perms:
                 show = False
 
         if show:
@@ -123,10 +132,10 @@ def home(request: http.HttpRequest) -> http.HttpResponse:
             else:
                 past_courses.append(course)
 
-    def course_sort_key_minor(course):
+    def course_sort_key_minor(course: Course):
         return course.number if course.number is not None else ""
 
-    def course_sort_key_major(course):
+    def course_sort_key_major(course: Course):
         return (course.start_date
                 if course.start_date is not None else now_datetime.date())
 
@@ -155,19 +164,24 @@ def check_course_state(
     if course.hidden:
         if participation is None:
             raise PermissionDenied(_("course page is currently hidden"))
-        if not participation.has_permission(pperm.view_hidden_course_page):
+        if not participation.has_permission(PPerm.view_hidden_course_page):
             raise PermissionDenied(_("course page is currently hidden"))
 
 
 @course_view
 def course_page(pctx: CoursePageContext) -> http.HttpResponse:
-    from course.content import get_course_desc, get_processed_page_chunks
-    page_desc = get_course_desc(pctx.repo, pctx.course, pctx.course_commit_sha)
+    page_desc = get_staticpage_desc(
+                                    pctx.repo,
+                                    pctx.course,
+                                    pctx.course_commit_sha,
+                                    pctx.course.course_file,
+                                    )
 
     chunks = get_processed_page_chunks(
-            pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
+            pctx.course, page_desc,
             pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            participation=pctx.participation)
 
     show_enroll_button = (
             pctx.course.accepts_enrollment
@@ -176,7 +190,7 @@ def course_page(pctx: CoursePageContext) -> http.HttpResponse:
     if pctx.request.user.is_authenticated and Participation.objects.filter(
             user=pctx.request.user,
             course=pctx.course,
-            status=participation_status.requested).count():
+            status=ParticipationStatus.requested).count():
         show_enroll_button = False
 
         messages.add_message(pctx.request, messages.INFO,
@@ -211,27 +225,31 @@ def course_page(pctx: CoursePageContext) -> http.HttpResponse:
                             )
 
     return render_course_page(pctx, "course/course-page.html", {
-        "chunks": chunks,
+        "chunks_with_html": chunks,
         "show_enroll_button": show_enroll_button,
         })
 
 
 @course_view
 def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
-    from course.content import get_processed_page_chunks, get_staticpage_desc
     try:
-        page_desc = get_staticpage_desc(pctx.repo, pctx.course,
-                pctx.course_commit_sha, "staticpages/"+page_path+".yml")
+        page_desc = get_staticpage_desc(
+                                        pctx.repo,
+                                        pctx.course,
+                                        pctx.course_commit_sha,
+                                        f"staticpages/{page_path}.yml",
+                                        )
     except ObjectDoesNotExist:
         raise http.Http404()
 
     chunks = get_processed_page_chunks(
-            pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
+            pctx.course, page_desc,
             pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            participation=pctx.participation)
 
     return render_course_page(pctx, "course/static-page.html", {
-        "chunks": chunks,
+        "chunks_with_html": chunks,
         "show_enroll_button": False,
         })
 
@@ -240,13 +258,22 @@ def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
 
 # {{{ media
 
-def media_etag_func(request, course_identifier, commit_sha, media_path):
+def media_etag_func(
+            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
+            course_identifier: str,
+            commit_sha: str,
+            media_path: str):
     return ":".join([course_identifier, commit_sha, media_path])
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
 @http_dec.condition(etag_func=media_etag_func)
-def get_media(request, course_identifier, commit_sha, media_path):
+def get_media(
+            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
+            course_identifier: str,
+            commit_sha: str,
+            media_path: str
+        ):
     course = get_object_or_404(Course, identifier=course_identifier)
 
     with get_course_repo(course) as repo:
@@ -254,25 +281,39 @@ def get_media(request, course_identifier, commit_sha, media_path):
             repo, "media/" + media_path, commit_sha.encode())
 
 
-def repo_file_etag_func(request, course_identifier, commit_sha, path):
+def repo_file_etag_func(
+            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
+            course_identifier: str,
+            commit_sha: str,
+            path: str):
     return ":".join([course_identifier, commit_sha, path])
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
 @http_dec.condition(etag_func=repo_file_etag_func)
-def get_repo_file(request, course_identifier, commit_sha, path):
-    commit_sha = commit_sha.encode()
+def get_repo_file(
+            request: RelateHttpRequest,
+            course_identifier: str,
+            commit_sha: str,
+            path: str):
+    # NB: This endpoint is available in an exam. It is responsible for
+    # not allowing access to unauthorized material in a locked-down setting.
+
+    commit_sha_bytes = commit_sha.encode()
 
     course = get_object_or_404(Course, identifier=course_identifier)
 
     participation = get_participation_for_request(request, course)
 
     return get_repo_file_backend(
-            request, course, participation, commit_sha, path)
+            request, course, participation, commit_sha_bytes, path)
 
 
 def current_repo_file_etag_func(
-        request: http.HttpRequest, course_identifier: str, path: str) -> str:
+            request: http.HttpRequest,
+            course_identifier: str,
+            path: str
+        ) -> str:
     course = get_object_or_404(Course, identifier=course_identifier)
     participation = get_participation_for_request(request, course)
 
@@ -288,6 +329,9 @@ def current_repo_file_etag_func(
 def get_current_repo_file(
         request: http.HttpRequest, course_identifier: str, path: str
         ) -> http.HttpResponse:
+    # NB: This endpoint is available in an exam. It is responsible for
+    # not allowing access to unauthorized material in a locked-down setting.
+
     course = get_object_or_404(Course, identifier=course_identifier)
     participation = get_participation_for_request(request, course)
 
@@ -302,7 +346,7 @@ def get_repo_file_backend(
         request: http.HttpRequest,
         course: Course,
         participation: Participation | None,
-        commit_sha: bytes,
+        commit_sha: RevisionID_ish,
         path: str,
         ) -> http.HttpResponse:
     """
@@ -327,7 +371,7 @@ def get_repo_file_backend(
         access_kinds = [
                 arg
                 for perm, arg in get_participation_permissions(course, participation)
-                if perm == pperm.access_files_for
+                if perm == PPerm.access_files_for
                 and arg is not None]
 
     from course.content import is_repo_file_accessible_as
@@ -344,7 +388,7 @@ def get_repo_file_response(
         repo: Any, path: str, commit_sha: bytes
         ) -> http.HttpResponse:
 
-    from course.content import get_repo_blob_data_cached
+    from course.repo import get_repo_blob_data_cached
 
     try:
         data = get_repo_blob_data_cached(repo, path, commit_sha)
@@ -408,12 +452,14 @@ def may_set_fake_time(user: User | None) -> bool:
 
     return Participation.objects.filter(
             user=user,
-            roles__permissions__permission=pperm.set_fake_time
+            roles__permissions__permission=PPerm.set_fake_time
             ).count() > 0
 
 
 @login_required
-def set_fake_time(request):
+def set_fake_time(request: RelateHttpRequest):
+    assert is_authed(request.user)
+
     # allow staff to set fake time when impersonating
     pre_imp_user = get_pre_impersonation_user(request)
     if not (
@@ -448,7 +494,7 @@ def set_fake_time(request):
     })
 
 
-def fake_time_context_processor(request):
+def fake_time_context_processor(request: RelateHttpRequest):
     return {
             "fake_time": get_fake_time(request),
             }
@@ -501,12 +547,14 @@ def may_set_pretend_facility(user: User | None) -> bool:
 
     return Participation.objects.filter(
             user=user,
-            roles__permissions__permission=pperm.set_pretend_facility
+            roles__permissions__permission=PPerm.set_pretend_facility
             ).count() > 0
 
 
 @login_required
-def set_pretend_facilities(request):
+def set_pretend_facilities(request: RelateHttpRequest):
+    assert is_authed(request.user)
+
     # allow staff to set fake time when impersonating
     pre_imp_user = get_pre_impersonation_user(request)
     if not (
@@ -551,7 +599,7 @@ def set_pretend_facilities(request):
     })
 
 
-def pretend_facilities_context_processor(request):
+def pretend_facilities_context_processor(request: RelateHttpRequest):
     return {
             "pretend_facilities": request.session.get(
                 "relate_pretend_facilities", []),
@@ -589,8 +637,8 @@ class InstantFlowRequestForm(StyledForm):
 
 
 @course_view
-def manage_instant_flow_requests(pctx):
-    if not pctx.has_permission(pperm.manage_instant_flow_requests):
+def manage_instant_flow_requests(pctx: CoursePageContext):
+    if not pctx.has_permission(PPerm.manage_instant_flow_requests):
         raise PermissionDenied()
 
     from course.content import list_flow_ids
@@ -666,8 +714,8 @@ class FlowTestForm(StyledForm):
 
 
 @course_view
-def test_flow(pctx):
-    if not pctx.has_permission(pperm.test_flow):
+def test_flow(pctx: CoursePageContext):
+    if not pctx.has_permission(PPerm.test_flow):
         raise PermissionDenied()
 
     from course.content import list_flow_ids
@@ -712,7 +760,7 @@ class ExceptionStage1Form(StyledForm):
                 queryset=(Participation.objects
                     .filter(
                         course=course,
-                        status=participation_status.active,
+                        status=ParticipationStatus.active,
                         )
                     .order_by("user__last_name")),
                 required=True,
@@ -735,8 +783,8 @@ class ExceptionStage1Form(StyledForm):
 
 
 @course_view
-def grant_exception(pctx):
-    if not pctx.has_permission(pperm.grant_exception):
+def grant_exception(pctx: CoursePageContext):
+    if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
     from course.content import list_flow_ids
@@ -828,10 +876,11 @@ class ExceptionStage2Form(StyledForm):
 
 @course_view
 def grant_exception_stage_2(
-        pctx: CoursePageContext, participation_id: str, flow_id: str
-        ) -> http.HttpResponse:
+            pctx: CoursePageContext,
+            participation_id: str,
+            flow_id: str) -> http.HttpResponse:
 
-    if not pctx.has_permission(pperm.grant_exception):
+    if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
     # {{{ get flow data
@@ -857,13 +906,10 @@ def grant_exception_stage_2(
 
     now_datetime = get_now_or_fake_time(pctx.request)
 
-    if hasattr(flow_desc, "rules"):
-        access_rules_tags = getattr(flow_desc.rules, "tags", [])
-    else:
-        access_rules_tags = []
+    access_rules_tags = flow_desc.rules.tags
 
-    from course.utils import get_session_start_rule
-    session_start_rule = get_session_start_rule(pctx.course, participation,
+    from course.utils import get_session_start_mode
+    session_start_rule = get_session_start_mode(pctx.course, participation,
             flow_id, flow_desc, now_datetime)
 
     create_session_is_override = False
@@ -922,7 +968,7 @@ def grant_exception_stage_2(
                     user=participation.user,
                     flow_id=flow_id,
                     flow_desc=flow_desc,
-                    session_start_rule=session_start_rule,
+                    session_start_mode=session_start_rule,
                     now_datetime=now_datetime)
 
             if access_rules_tag is not None:
@@ -1097,7 +1143,7 @@ def grant_exception_stage_3(
         participation_id: int,
         flow_id: str,
         session_id: int) -> http.HttpResponse:
-    if not pctx.has_permission(pperm.grant_exception):
+    if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
     assert pctx.request.user.is_authenticated
 
@@ -1113,9 +1159,9 @@ def grant_exception_stage_3(
     session = FlowSession.objects.get(id=int(session_id))
 
     now_datetime = get_now_or_fake_time(pctx.request)
-    from course.utils import get_session_access_rule, get_session_grading_rule
-    access_rule = get_session_access_rule(session, flow_desc, now_datetime)
-    grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
+    from course.utils import get_session_access_mode, get_session_grading_mode
+    access_rule = get_session_access_mode(session, flow_desc, now_datetime)
+    grading_rule = get_session_grading_mode(session, flow_desc, now_datetime)
 
     request = pctx.request
     if request.method == "POST":
@@ -1123,28 +1169,14 @@ def grant_exception_stage_3(
                 {}, flow_desc, session.access_rules_tag, request.POST)
 
         if form.is_valid():
-            permissions = [
+            permissions = frozenset({
                     key
                     for key, __ in FLOW_PERMISSION_CHOICES
-                    if form.cleaned_data[key]]
-
-            from course.validation import (
-                ValidationContext,
-                validate_session_access_rule,
-                validate_session_grading_rule,
-            )
-            from relate.utils import dict_to_struct
-            vctx = ValidationContext(
-                    repo=pctx.repo,
-                    commit_sha=pctx.course_commit_sha)
+                    if form.cleaned_data[key]})
 
             flow_desc = get_flow_desc(pctx.repo,
                     pctx.course,
                     flow_id, pctx.course_commit_sha)
-
-            tags: list[str] = []
-            if hasattr(flow_desc, "rules"):
-                tags = cast("list[str]", getattr(flow_desc.rules, "tags", []))
 
             exceptions_created: list[str] = []
 
@@ -1152,19 +1184,19 @@ def grant_exception_stage_3(
                 form.cleaned_data.get("restrict_to_same_tag")
                 and session.access_rules_tag is not None)
 
+            vctx = ValidationContext(pctx.repo, pctx.course_commit_sha, pctx.course)
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
-                new_access_rule: dict[str, Any] = {
-                        "permissions": [str(p) for p in permissions]
-                    }
-
-                if restricted_to_same_tag:
-                    new_access_rule["if_has_tag"] = session.access_rules_tag
-
-                validate_session_access_rule(
-                        vctx, _("newly created exception"),
-                        dict_to_struct(new_access_rule), tags)
+                new_access_rule_json = {
+                        "permissions": [str(p) for p in permissions],
+                        "if_has_tag": (
+                            session.access_rules_tag
+                            if restricted_to_same_tag else
+                            None)
+                }
+                # Ensure that JSON validates, but do not use it.
+                access_rule_ta.validate_python(new_access_rule_json, context=vctx)
 
                 fre_access = FlowRuleException(
                     flow_id=flow_id,
@@ -1172,12 +1204,13 @@ def grant_exception_stage_3(
                     expiration=form.cleaned_data["access_expires"],
                     creator=pctx.request.user,
                     comment=form.cleaned_data["comment"],
-                    kind=str(flow_rule_kind.access),
-                    rule=new_access_rule)
+                    kind=str(FlowRuleKind.access),
+                    rule=new_access_rule_json,
+                    )
                 fre_access.save()
                 exceptions_created.append(
                     str(dict(FLOW_RULE_KIND_CHOICES)[
-                        cast("flow_rule_kind", fre_access.kind)]))
+                        cast("FlowRuleKind", fre_access.kind)]))
 
             # }}}
 
@@ -1220,35 +1253,40 @@ def grant_exception_stage_3(
                             as_local_time(due_local_naive)
                             .replace(tzinfo=None))
 
-                new_grading_rule: dict[str, Any] = {"description": descr}
+                new_grading_rule_json = {
+                    "description": descr,
+                    "due": due_local_naive,
+                    "if_has_tag": (
+                            session.access_rules_tag
+                            if restricted_to_same_tag else
+                            None),
+                    "generates_grade": form.cleaned_data["generates_grade"],
+                }
 
-                if due_local_naive is not None:
-                    new_grading_rule["due"] = due_local_naive
+                def transfer_attr(name: str):
+                    if form.cleaned_data[name] is not None:
+                        new_grading_rule_json[name] = \
+                                form.cleaned_data[name]
+                transfer_attr("credit_percent")
+                transfer_attr("bonus_points")
+                transfer_attr("max_points")
+                transfer_attr("max_points_enforced_cap")
 
-                for attr_name in ["credit_percent", "bonus_points",
-                        "max_points", "max_points_enforced_cap", "generates_grade"]:
-                    if form.cleaned_data[attr_name] is not None:
-                        new_grading_rule[attr_name] = form.cleaned_data[attr_name]
-
-                if restricted_to_same_tag:
-                    new_grading_rule["if_has_tag"] = session.access_rules_tag
-
-                validate_session_grading_rule(
-                        vctx, _("newly created exception"),
-                        dict_to_struct(new_grading_rule), tags,
-                        grading_rule.grade_identifier)
+                # Ensure that JSON validates, but do not use it.
+                grading_rule_ta.validate_python(new_grading_rule_json, context=vctx)
 
                 fre_grading = FlowRuleException(
                     flow_id=flow_id,
                     participation=participation,
                     creator=pctx.request.user,
                     comment=form.cleaned_data["comment"],
-                    kind=flow_rule_kind.grading,
-                    rule=new_grading_rule)
+                    kind=FlowRuleKind.grading,
+                    rule=new_grading_rule_json,
+                    )
                 fre_grading.save()
                 exceptions_created.append(
                     str(dict(FLOW_RULE_KIND_CHOICES)[
-                        cast("flow_rule_kind", fre_grading.kind)]))
+                        cast("FlowRuleKind", fre_grading.kind)]))
 
             # }}}
 
@@ -1322,10 +1360,7 @@ def grant_exception_stage_3(
 # {{{ ssh keypair
 
 @login_required
-def generate_ssh_keypair(request):
-    if not request.user.is_staff:
-        raise PermissionDenied(_("only staff may use this tool"))
-
+def generate_ssh_keypair(request: http.HttpRequest):
     from paramiko import RSAKey
     key_class = RSAKey
     prv = key_class.generate(bits=2048)
@@ -1416,8 +1451,8 @@ class EditCourseForm(StyledModelForm):
 
 
 @course_view
-def edit_course(pctx):
-    if not pctx.has_permission(pperm.edit_course):
+def edit_course(pctx: CoursePageContext):
+    if not pctx.has_permission(PPerm.edit_course):
         raise PermissionDenied()
 
     request = pctx.request

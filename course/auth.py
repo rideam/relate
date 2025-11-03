@@ -25,9 +25,13 @@ THE SOFTWARE.
 
 import sys
 import re
+from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
+    ParamSpec,
+    TypeAlias,
     cast,
 )
 
@@ -66,9 +70,9 @@ from djangosaml2.backends import Saml2Backend
 
 from accounts.models import User
 from course.constants import (
-    participation_permission as pperm,
-    participation_status,
-    user_status,
+    ParticipationPermission as PPerm,
+    ParticipationStatus,
+    UserStatus,
 )
 from course.models import (
     AuthenticationToken,
@@ -78,6 +82,7 @@ from course.models import (
 from course.utils import CoursePageContext, course_view, render_course_page
 from relate.utils import (
     HTML5DateTimeInput,
+    RelateHttpRequest,
     StyledForm,
     StyledModelForm,
     get_site_name,
@@ -94,7 +99,7 @@ if TYPE_CHECKING:
 
 # {{{ impersonation
 
-def get_pre_impersonation_user(request):
+def get_pre_impersonation_user(request: RelateHttpRequest):
     is_impersonating = hasattr(
             request, "relate_impersonate_original_user")
     if is_impersonating:
@@ -108,7 +113,7 @@ def get_impersonable_user_qset(impersonator: User) -> query.QuerySet[User]:
 
     my_participations = Participation.objects.filter(
         user=impersonator,
-        status=participation_status.active)
+        status=ParticipationStatus.active)
 
     impersonable_user_qset = User.objects.none()
     for part in my_participations:
@@ -116,16 +121,16 @@ def get_impersonable_user_qset(impersonator: User) -> query.QuerySet[User]:
         # profile in one course, then he/she is not able to impersonate
         # any user, even in courses he/she is allow to view profiles
         # of all users.
-        if part.has_permission(pperm.view_participant_masked_profile):
+        if part.has_permission(PPerm.view_participant_masked_profile):
             return User.objects.none()
         impersonable_roles = [
             argument
             for perm, argument in part.permissions()
-            if perm == pperm.impersonate_role]
+            if perm == PPerm.impersonate_role]
 
         q = (Participation.objects
              .filter(course=part.course,
-                     status=participation_status.active,
+                     status=ParticipationStatus.active,
                      roles__identifier__in=impersonable_roles)
              .select_related("user"))
 
@@ -272,14 +277,14 @@ def stop_impersonating(request: http.HttpRequest) -> http.JsonResponse:
         # prevent user without pperm to stop_impersonating
         my_participations = Participation.objects.filter(
             user=request.user,
-            status=participation_status.active)
+            status=ParticipationStatus.active)
 
         may_impersonate = False
         for part in my_participations:
             perms = [
                 perm
                 for perm, argument in part.permissions()
-                if perm == pperm.impersonate_role]
+                if perm == PPerm.impersonate_role]
             if any(perms):
                 may_impersonate = True
                 break
@@ -349,7 +354,7 @@ class EmailedTokenBackend:
 
         (user,) = users
 
-        user.status = user_status.active
+        user.status = UserStatus.active
         user.sign_in_key = None
         user.save()
 
@@ -487,7 +492,7 @@ def sign_up(request):
                         username=form.cleaned_data["username"])
 
                 user.set_unusable_password()
-                user.status = user_status.unconfirmed
+                user.status = UserStatus.unconfirmed
                 user.sign_in_key = make_sign_in_key(user)
                 user.save()
 
@@ -567,14 +572,14 @@ class ResetPasswordFormByInstid(StyledForm):
                 Submit("submit", _("Send email")))
 
 
-def masked_email(email):
+def masked_email(email: str):
     # return a masked email address
     at = email.find("@")
     return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
 
 
 @logout_confirmation_required
-def reset_password(request, field="email"):
+def reset_password(request: RelateHttpRequest, field: str = "email"):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
@@ -703,12 +708,15 @@ class ResetPasswordStage2Form(StyledForm):
 
 
 @logout_confirmation_required
-def reset_password_stage2(request, user_id, sign_in_key):
+def reset_password_stage2(
+            request: RelateHttpRequest,
+            user_id: str,
+            sign_in_key: str):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
 
-    def check_sign_in_key(user_id, token):
+    def check_sign_in_key(user_id: int, token: str):
         user = get_user_model().objects.get(id=user_id)
         return user.sign_in_key == token
 
@@ -800,7 +808,7 @@ def sign_in_by_email(request):
 
             if created:
                 user.set_unusable_password()
-                user.status = user_status.unconfirmed
+                user.status = UserStatus.unconfirmed
 
             user.sign_in_key = make_sign_in_key(user)
             user.save()
@@ -1081,9 +1089,9 @@ class RelateSaml2Backend(Saml2Backend):
                 mod = True
 
         if "email" in mapped_attributes:
-            from course.constants import user_status
-            if user.status != user_status.active:
-                user.status = user_status.active
+            from course.constants import UserStatus
+            if user.status != UserStatus.active:
+                user.status = UserStatus.active
                 mod = True
 
         if mod:
@@ -1106,9 +1114,9 @@ def social_set_user_email_verified(backend, details, user=None, *args, **kwargs)
             user.email = email
             modified = True
 
-        from course.constants import user_status
-        if user.status != user_status.active:
-            user.status = user_status.active
+        from course.constants import UserStatus
+        if user.status != UserStatus.active:
+            user.status = UserStatus.active
             modified = True
 
     if modified:
@@ -1259,7 +1267,7 @@ class APIContext:
                 role_restriction_ok = True
 
             if not role_restriction_ok and self.participation.has_permission(
-                    pperm.impersonate_role, restrict_to_role.identifier):
+                    PPerm.impersonate_role, restrict_to_role.identifier):
                 role_restriction_ok = True
 
             if not role_restriction_ok:
@@ -1280,9 +1288,17 @@ BASIC_AUTH_DATA_RE = re.compile(
     r"^(?P<username>\w+):(?P<token_id>[0-9]+)_(?P<token_hash>[a-z0-9]+)$")
 
 
-def auth_course_with_token(method, func, request,
-        course_identifier, *args, **kwargs):
+P = ParamSpec("P")
+APICallable: TypeAlias = Callable[Concatenate[APIContext, str, P], http.HttpResponse]
 
+
+def auth_course_with_token(
+            method: str,
+            func: APICallable[P],
+            request: RelateHttpRequest,
+            course_identifier: str,
+            *args: P.args,
+            **kwargs: P.kwargs):
     from django.utils.timezone import now
     now_datetime = now()
 
@@ -1328,12 +1344,13 @@ def auth_course_with_token(method, func, request,
                 "now_datetime": now_datetime}
 
         # FIXME: Redundant db roundtrip
-        token = find_matching_token(**auth_data_dict)
+        # mypy type-ignore because it gives a confused error message
+        token = find_matching_token(**auth_data_dict)  # type: ignore[arg-type]
         if token is None:
             raise PermissionDenied("invalid authentication token")
 
         from django.contrib.auth import authenticate, login
-        user = authenticate(**auth_data_dict)
+        user = authenticate(request, **auth_data_dict)
 
         assert user is not None
 
@@ -1370,9 +1387,14 @@ def auth_course_with_token(method, func, request,
 
 
 def with_course_api_auth(method: str) -> Any:
-    def wrapper_with_method(func):
-        def wrapper(*args, **kwargs):
-            return auth_course_with_token(method, func, *args, **kwargs)
+    def wrapper_with_method(func: APICallable[P]):
+        def wrapper(
+                    request: RelateHttpRequest,
+                    course_identifier: str,
+                    *args: P.args,
+                    **kwargs: P.kwargs):
+            return auth_course_with_token(
+                        method, func, request, course_identifier, *args, **kwargs)
 
         from functools import update_wrapper
         update_wrapper(wrapper, func)
@@ -1410,7 +1432,7 @@ class AuthenticationTokenForm(StyledModelForm):
                         for prole in ParticipationRole.objects.filter(
                             course=participation.course)
                         if participation.has_permission(
-                            pperm.impersonate_role, prole.identifier)}
+                            PPerm.impersonate_role, prole.identifier)}
                 )
 
         self.fields["restrict_to_participation_role"].queryset = (  # type:ignore[attr-defined]
@@ -1428,7 +1450,7 @@ def manage_authentication_tokens(pctx: CoursePageContext) -> http.HttpResponse:
     if not request.user.is_authenticated:
         raise PermissionDenied()
 
-    if not pctx.has_permission(pperm.view_analytics):
+    if not pctx.has_permission(PPerm.view_analytics):
         raise PermissionDenied()
     assert pctx.participation is not None
 

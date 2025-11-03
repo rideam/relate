@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from django.utils.safestring import mark_safe
-
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -25,24 +23,50 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import django.forms as forms
-from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
-from django.utils.html import escape
-from django.utils.translation import gettext as _
+import os
+from abc import ABC, abstractmethod
+from typing import (
+    Annotated,
+    Any,
+    Literal,
+    Self,
+)
 
-from course.constants import flow_permission
+import django.forms as forms
+from annotated_types import Ge, Le
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext as _
+from pydantic import (
+    AllowInfNan,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    model_validator,
+)
+from pytools import not_none
+from typing_extensions import override
+
+from course.constants import FlowPermission
 from course.page.base import (
+    AnswerData,
     AnswerFeedback,
+    GradeData,
+    InvalidFeedbackPointsError,
     PageBaseWithHumanTextFeedback,
     PageBaseWithoutHumanGrading,
     PageBaseWithTitle,
     PageBaseWithValue,
+    PageBehavior,
+    PageContext,
+    PageData,
     get_auto_feedback,
     get_editor_interaction_mode,
     markup_to_html,
 )
-from course.validation import AttrSpec, ValidationError
+from course.page.code_run_backend import RunRequest, RunResponse
+from course.repo import FileSystemFakeRepo, get_repo_blob
+from course.validation import IdentifierStr, Markup, RepoPathStr, get_validation_context
 from relate.utils import StyledVerticalForm, string_concat
 
 
@@ -54,7 +78,7 @@ SPAWN_CONTAINERS = True
 
 # {{{ html sanitization helper
 
-def is_allowed_data_uri(allowed_mimetypes, uri):
+def is_allowed_data_uri(allowed_mimetypes: list[str], uri: str):
     import re
     m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
     if not m:
@@ -65,14 +89,14 @@ def is_allowed_data_uri(allowed_mimetypes, uri):
 
 
 def filter_audio_attributes(tag, name, value):
-    if name in ["controls"]:
+    if name == "controls":
         return True
     else:
         return False
 
 
 def filter_source_attributes(tag, name, value):
-    if name in ["type"]:
+    if name == "type":
         return True
     elif name == "src":
         if is_allowed_data_uri([
@@ -97,7 +121,7 @@ def filter_img_attributes(tag, name, value):
         return False
 
 
-def filter_attributes(tag, name, value):
+def filter_attributes(tag: str, name: str, value: str):
     from bleach.sanitizer import ALLOWED_ATTRIBUTES
 
     allowed_attrs = ALLOWED_ATTRIBUTES.get(tag, [])
@@ -176,6 +200,7 @@ class CodeForm(StyledVerticalForm):
             widget=cm_widget,
             label=_("Answer"))
 
+    @override
     def clean(self):
         # FIXME Should try compilation
         pass
@@ -189,10 +214,13 @@ class InvalidPingResponse(RuntimeError):
     pass
 
 
-def request_run(run_req, run_timeout, image=None):
+def request_run(
+            run_req: RunRequest,
+            run_timeout: float,
+            image: str | None = None
+        ) -> RunResponse:
     import errno
     import http.client as http_client
-    import json
 
     import docker
     from docker.errors import APIError as DockerAPIError
@@ -211,8 +239,9 @@ def request_run(run_req, run_timeout, image=None):
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
     debug_print(f"Image is {image!r}.")
+    from django.conf import settings
     if image is None:
-        image = settings.RELATE_DOCKER_RUNPY_IMAGE
+        image = not_none(settings.RELATE_DOCKER_RUNPY_IMAGE)
 
     if SPAWN_CONTAINERS:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
@@ -280,12 +309,12 @@ def request_run(run_req, run_timeout, image=None):
                 sleep(0.1)
                 # and retry
             else:
-                return {
-                        "result": "uncaught_error",
-                        "message": "Timeout waiting for container.",
-                        "traceback": "".join(format_exc()),
-                        "exec_host": connect_host_ip,
-                        }
+                return RunResponse(
+                        result="uncaught_error",
+                        message="Timeout waiting for container.",
+                        traceback="".join(format_exc()),
+                        exec_host=connect_host_ip,
+                        )
 
         if not connect_host_ip:
             # for compatibility with podman
@@ -330,7 +359,7 @@ def request_run(run_req, run_timeout, image=None):
 
             headers = {"Content-type": "application/json"}
 
-            json_run_req = json.dumps(run_req).encode("utf-8")
+            json_run_req = run_req.model_dump_json().encode("utf-8")
 
             from time import time
             start_time = time()
@@ -346,21 +375,21 @@ def request_run(run_req, run_timeout, image=None):
 
             end_time = time()
 
-            result = json.loads(response_data)
+            result = RunResponse.model_validate_json(response_data)
 
-            result["feedback"] = ([*result.get("feedback", []),
+            result.feedback = [*result.feedback,
                 f"Execution time: {end_time - start_time:.1f} s "
-                f"-- Time limit: {run_timeout:.1f} s"])
+                f"-- Time limit: {run_timeout:.1f} s"]
 
-            result["exec_host"] = connect_host_ip
+            result.exec_host = connect_host_ip
 
             return result
 
         except TimeoutError:
-            return {
-                    "result": "timeout",
-                    "exec_host": connect_host_ip,
-                    }
+            return RunResponse(
+                    result="timeout",
+                    exec_host=connect_host_ip,
+                    )
     finally:
         if container is not None:
             debug_print(f"-----------BEGIN DOCKER LOGS for {container.id}")
@@ -374,12 +403,12 @@ def request_run(run_req, run_timeout, image=None):
                 pass
 
 
-def is_nuisance_failure(result):
-    if result["result"] != "uncaught_error":
+def is_nuisance_failure(result: RunResponse):
+    if result.result != "uncaught_error":
         return False
 
-    if "traceback" in result:
-        if "BadStatusLine" in result["traceback"]:
+    if result.traceback is not None:
+        if "BadStatusLine" in result.traceback:
 
             # Occasionally, we fail to send a POST to the container, even after
             # the initial ping GET succeeded, for (for now) mysterious reasons.
@@ -387,25 +416,29 @@ def is_nuisance_failure(result):
 
             return True
 
-        if "bind: address already in use" in result["traceback"]:
+        if "bind: address already in use" in result.traceback:
             # https://github.com/docker/docker/issues/8714
 
             return True
 
         if ("requests.packages.urllib3.exceptions.NewConnectionError"
-                in result["traceback"]):
+                in result.traceback):
             return True
 
-        if "http.client.RemoteDisconnected" in result["traceback"]:
+        if "http.client.RemoteDisconnected" in result.traceback:
             return True
 
-        if "[Errno 113] No route to host" in result["traceback"]:
+        if "[Errno 113] No route to host" in result.traceback:
             return True
 
     return False
 
 
-def request_run_with_retries(run_req, run_timeout, image=None, retry_count=3):
+def request_run_with_retries(
+            run_req: RunRequest,
+            run_timeout: float,
+            image: str | None = None,
+            retry_count: int = 3):
     while True:
         result = request_run(run_req, run_timeout, image=image)
 
@@ -416,7 +449,7 @@ def request_run_with_retries(run_req, run_timeout, image=None, retry_count=3):
         return result
 
 
-class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
+class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
     """
     An auto-graded question allowing an answer consisting of code.
     All user code as well as all code specified as part of the problem
@@ -424,7 +457,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     interface and used only as a superclass.
 
     If you are not including the
-    :attr:`course.constants.flow_permission.change_answer`
+    :attr:`course.constants.FlowPermission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 
@@ -566,39 +599,44 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     * ``user_code``: The user code being tested, as a string.
     """
+    prompt: Markup
+    timeout: float
 
-    def __init__(self, vctx, location, page_desc, language_mode):
-        super().__init__(vctx, location, page_desc)
+    setup_code: str | None = None
+    show_setup_code: bool = False
 
-        if vctx is not None and hasattr(page_desc, "data_files"):
-            for data_file in page_desc.data_files:
-                try:
-                    if not isinstance(data_file, str):
-                        raise ObjectDoesNotExist()
+    test_code: str | None = None
+    show_test_code: bool = False
 
-                    from course.content import get_repo_blob
-                    get_repo_blob(vctx.repo, data_file, vctx.commit_sha)
-                except ObjectDoesNotExist:
-                    raise ValidationError(
-                        string_concat(
-                            "%(location)s: ",
-                            _("data file '%(file)s' not found"))
-                        % {"location": location, "file": data_file})
+    names_for_user: list[IdentifierStr] = Field(default_factory=list)
+    names_from_user: list[IdentifierStr] = Field(default_factory=list)
 
-        if hasattr(page_desc, "docker_image"):
-            self.container_image = page_desc.docker_image
+    correct_code_explanation: Markup | None = None
+    correct_code: str | None = None
+    initial_code: str | None = None
 
-        if not getattr(page_desc, "single_submission", False) and vctx is not None:
+    docker_image: str | None = None
+    data_files: list[RepoPathStr] = Field(default_factory=list)
+    single_submission: bool = False
+
+    # This is only used by the CLI test-code command, so that
+    # user code can be added without obliterating the correct code.
+    # It is not considered anywhere else.
+    check_user_code: str | None = None
+
+    @model_validator(mode="after")
+    def check_has_multi_submit(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info)
+
+        if not self.single_submission:
             is_multi_submit = False
 
-            if hasattr(page_desc, "access_rules"):
-                if hasattr(page_desc.access_rules, "add_permissions"):
-                    if (flow_permission.change_answer
-                            in page_desc.access_rules.add_permissions):
-                        is_multi_submit = True
+            if self.access_rules is not None:
+                if FlowPermission.change_answer in self.access_rules.add_permissions:
+                    is_multi_submit = True
 
             if not is_multi_submit:
-                vctx.add_warning(location, _("code question does not explicitly "
+                vctx.add_warning(_("code question does not explicitly "
                     "allow multiple submission. Either add "
                     "access_rules/add_permissions/change_answer "
                     "or add 'single_submission: True' to confirm that you intend "
@@ -606,56 +644,56 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "While you're at it, consider adding "
                     "access_rules/add_permissions/see_correctness."))
 
-    def required_attrs(self) -> AttrSpec:
-        return (
-            *super().required_attrs(),
-            ("prompt", "markup"),
-            ("timeout", (int, float)))
+        return self
 
-    def allowed_attrs(self) -> AttrSpec:
-        return (
-            *super().allowed_attrs(),
-            ("setup_code", str),
-            ("show_setup_code", bool),
-            ("names_for_user", list),
-            ("names_from_user", list),
-            ("test_code", str),
-            ("show_test_code", bool),
-            ("correct_code_explanation", "markup"),
-            ("correct_code", str),
-            ("initial_code", str),
-            ("docker_image", str),
-            ("data_files", list),
-            ("single_submission", bool))
+    @model_validator(mode="after")
+    def check_check_user_code_without_file_repo(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info)
+
+        # use this as a proxy for 'running in the CLI' (plus the test suite is
+        # allowed, too)
+        if self.check_user_code is not None:
+            if (not isinstance(vctx.repo, FileSystemFakeRepo)
+                    and "PYTEST_CURRENT_TEST" not in os.environ):
+                raise ValueError("check_user_code is not None while "
+                                 "not running in the CLI")
+
+        return self
 
     def _initial_code(self):
-        result = getattr(self.page_desc, "initial_code", None)
+        result = self.initial_code
         if result is not None:
             return result.strip()
         else:
             return result
 
-    def markup_body_for_title(self):
-        return self.page_desc.prompt
+    @override
+    def body_attr_for_title(self):
+        return "prompt"
 
-    def body(self, page_context, page_data):
+    @override
+    def body(self, page_context: PageContext, page_data: PageData):
         from django.template.loader import render_to_string
         return render_to_string(
                 "course/prompt-code-question.html",
                 {
                     "prompt_html":
-                    markup_to_html(page_context, self.page_desc.prompt),
+                    markup_to_html(page_context, self.prompt),
                     "initial_code": self._initial_code(),
                     "show_setup_code": getattr(
-                        self.page_desc, "show_setup_code", False),
-                    "setup_code": getattr(self.page_desc, "setup_code", ""),
+                        self, "show_setup_code", False),
+                    "setup_code": getattr(self, "setup_code", ""),
                     "show_test_code": getattr(
-                        self.page_desc, "show_test_code", False),
-                    "test_code": getattr(self.page_desc, "test_code", ""),
+                        self, "show_test_code", False),
+                    "test_code": getattr(self, "test_code", ""),
                     })
 
-    def make_form(self, page_context, page_data,
-            answer_data, page_behavior):
+    @override
+    def make_form(self,
+                page_context: PageContext,
+                page_data: PageData,
+                answer_data: AnswerData,
+                page_behavior: PageBehavior):
 
         if answer_data is not None:
             answer = {"answer": self.get_code_from_answer_data(answer_data)}
@@ -676,6 +714,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         return form
 
+    @override
     def process_form_post(
             self, page_context, page_data, post_data, files_data, page_behavior):
         return CodeForm(
@@ -685,7 +724,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 self.language_mode,
                 post_data, files_data)
 
-    def get_submission_filename_pattern(self, page_context):
+    def get_submission_filename_pattern(self, page_context: PageContext):
         username = "anon"
         flow_id = "unk_flow"
         if page_context.flow_session is not None:
@@ -699,16 +738,17 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 f"{page_context.course.identifier}/"
                 "code/"
                 f"{flow_id}/"
-                f"{self.page_desc.id}/"
+                f"{self.id}/"
                 f"{username}"
                 f"{self.suffix}")
 
-    def code_to_answer_data(self, page_context, code):
+    def code_to_answer_data(self, page_context: PageContext, code: str):
         # Linux sector size is 512. Anything below a half-full
         # sector is probably inefficient.
         if len(code) <= 256:
             return {"answer": code}
 
+        from django.conf import settings
         from django.core.files.base import ContentFile
         saved_name = settings.RELATE_BULK_STORAGE.save(
                 self.get_submission_filename_pattern(page_context),
@@ -716,16 +756,21 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         return {"storage_filename": saved_name}
 
-    def answer_data(self, page_context, page_data, form, files_data):
+    @override
+    def answer_data(self,
+                page_context: PageContext,
+                page_data: PageData,
+                form: forms.Form,
+                files_data: Any):
         code = form.cleaned_data["answer"].strip()
         return self.code_to_answer_data(page_context, code)
 
-    def get_test_code(self):
-        test_code = getattr(self.page_desc, "test_code", None)
+    def get_test_code(self) -> str | None:
+        test_code = getattr(self, "test_code", None)
         if test_code is None:
             return test_code
 
-        correct_code = getattr(self.page_desc, "correct_code", None)
+        correct_code = getattr(self, "correct_code", None)
         if correct_code is None:
             correct_code = ""
 
@@ -733,7 +778,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     @staticmethod
-    def get_code_from_answer_data(answer_data):
+    def get_code_from_answer_data(answer_data: Any) -> str:
+        from django.conf import settings
         if "storage_filename" in answer_data:
             bulk_storage = settings.RELATE_BULK_STORAGE
             with bulk_storage.open(answer_data["storage_filename"]) as inf:
@@ -745,7 +791,14 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         else:
             raise ValueError("could not get submitted data from answer_data JSON")
 
-    def grade(self, page_context, page_data, answer_data, grade_data):
+    @override
+    def grade(
+            self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData,
+            grade_data: GradeData,
+            ) -> AnswerFeedback | None:
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=_("No answer provided."))
@@ -754,35 +807,26 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # {{{ request run
 
-        run_req = {"compile_only": False, "user_code": user_code}
-
-        def transfer_attr(name):
-            if hasattr(self.page_desc, name):
-                run_req[name] = getattr(self.page_desc, name)
-
-        transfer_attr("setup_code")
-        transfer_attr("names_for_user")
-        transfer_attr("names_from_user")
-
-        run_req["test_code"] = self.get_test_code()
-
-        if hasattr(self.page_desc, "data_files"):
-            run_req["data_files"] = {}
-
-            from course.content import get_repo_blob
-
-            for data_file in self.page_desc.data_files:
-                from base64 import b64encode
-                run_req["data_files"][data_file] = \
-                        b64encode(
-                                get_repo_blob(
-                                    page_context.repo, data_file,
-                                    page_context.commit_sha).data).decode()
+        from base64 import b64encode
+        run_req = RunRequest(
+                user_code=user_code,
+                setup_code=self.setup_code,
+                names_for_user=self.names_for_user,
+                names_from_user=self.names_from_user,
+                test_code=self.get_test_code(),
+                data_files={
+                    data_file: b64encode(
+                            get_repo_blob(
+                                page_context.repo, data_file,
+                                page_context.commit_sha).data).decode()
+                    for data_file in self.data_files
+                }
+            )
 
         try:
             response_dict = request_run_with_retries(run_req,
-                    run_timeout=self.page_desc.timeout,
-                    image=self.container_image)
+                    run_timeout=self.timeout,
+                    image=self.docker_image)
         except Exception:
             from traceback import format_exc
             response_dict = {
@@ -793,46 +837,56 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
-        feedback_bits = []
+        try:
+            response = RunResponse.model_validate(response_dict)
+        except ValidationError as e:
+            response = RunResponse(
+                            result="setup_error",
+                            message=f"{type(e).__name__}: {e!s}")
 
-        correctness = None
+        correctness = response.points
+        feedback_bits: list[str] = []
+        bulk_feedback_bits: list[str] = []
 
-        if "points" in response_dict:
-            correctness = response_dict["points"]
-            try:
-                feedback_bits.append(
-                        f"<p><b>{_(get_auto_feedback(correctness))}</b></p>")
-            except Exception as e:
-                correctness = None
-                response_dict["result"] = "setup_error"
-                response_dict["message"] = (
-                    f"{type(e).__name__}: {e!s}"
-                )
+        try:
+            feedback_bits.append(
+                    f"<p><b>{_(get_auto_feedback(correctness))}</b></p>")
+        except InvalidFeedbackPointsError as e:
+            response = RunResponse(
+                            result="setup_error",
+                            message=f"{type(e).__name__}: {e!s}")
+            correctness = None
 
         # {{{ send email if the grading code broke
 
-        if response_dict["result"] in [
+        if response.result in [
                 "uncaught_error",
                 "setup_compile_error",
                 "setup_error",
                 "test_compile_error",
                 "test_error"]:
-            error_msg_parts = ["RESULT: {}".format(response_dict["result"])]
-            for key, val in sorted(response_dict.items()):
+            error_msg_parts = [f"RESULT: {response.result}"]
+            if response.message:
+                error_msg_parts.append(f"MESSAGE: {response.message}")
+            for key, val in sorted(response.model_dump().items()):
                 if (key not in ["result", "figures"]
                         and val
                         and isinstance(val, str)):
-                    error_msg_parts.append("-------------------------------------")
-                    error_msg_parts.append(key)
-                    error_msg_parts.append("-------------------------------------")
-                    error_msg_parts.append(val)
-            error_msg_parts.append("-------------------------------------")
-            error_msg_parts.append("user code")
-            error_msg_parts.append("-------------------------------------")
-            error_msg_parts.append(user_code)
-            error_msg_parts.append("-------------------------------------")
+                    error_msg_parts.extend(
+                        ("-------------------------------------",
+                            key,
+                            "-------------------------------------",
+                            val))
+            error_msg_parts.extend((
+                        "-------------------------------------",
+                        "user code",
+                        "-------------------------------------",
+                        user_code,
+                        "-------------------------------------"))
 
             error_msg = "\n".join(error_msg_parts)
+
+            from django.conf import settings
 
             from course.utils import LanguageOverride
             from relate.utils import format_datetime_local, local_now
@@ -841,7 +895,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 message = render_email_template(
                     "course/broken-code-question-email.txt", {
                         "site": settings.RELATE_BASE_URL,
-                        "page_id": self.page_desc.id,
+                        "page_id": self.id,
                         "course": page_context.course,
                         "error_message": error_msg,
                         "review_uri": page_context.page_uri,
@@ -850,7 +904,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
                 if (
                         not page_context.in_sandbox
-                        and not is_nuisance_failure(response_dict)):
+                        and not is_nuisance_failure(response)):
                     try:
                         from django.core.mail import EmailMessage
                         msg = EmailMessage("".join(["[%s:%s] ",
@@ -893,8 +947,10 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
-        if hasattr(self.page_desc, "correct_code"):
-            def normalize_code(s):
+        del response_dict
+
+        if self.correct_code is not None:
+            def normalize_code(s: str):
                 return (s
                         .replace(" ", "")
                         .replace("\r", "")
@@ -902,16 +958,11 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         .replace("\t", ""))
 
             if (normalize_code(user_code)
-                    == normalize_code(self.page_desc.correct_code)):
+                    == normalize_code(self.correct_code)):
                 feedback_bits.append(
                         "<p><b>{}</b></p>".format(
                             _("It looks like you submitted code that is identical to "
                             "the reference solution. This is not allowed.")))
-
-        from relate.utils import dict_to_struct
-        response = dict_to_struct(response_dict)
-
-        bulk_feedback_bits = []
 
         if response.result == "success":
             pass
@@ -942,7 +993,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "It took longer than that and was aborted."
                     ),
                 "</p>"])
-                    % self.page_desc.timeout)
+                    % self.timeout)
 
             correctness = 0
         elif response.result == "user_compile_error":
@@ -964,8 +1015,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         else:
             raise RuntimeError(f"invalid run result: {response.result}")
 
-        if hasattr(response, "feedback") and response.feedback:
-            def sanitize(s):
+        if response.feedback:
+            def sanitize(s: str):
                 import bleach
                 return bleach.clean(s, tags=["p", "pre"])
             feedback_bits.append("".join([
@@ -976,13 +1027,13 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         "".join(
                             f"<li>{sanitize(fb_item)}</li>"
                             for fb_item in response.feedback))
-        if hasattr(response, "traceback") and response.traceback:
+        if response.traceback:
             feedback_bits.append("".join([
                 "<p>",
                 _("This is the exception traceback"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.traceback))
-        if hasattr(response, "exec_host") and response.exec_host != "localhost":
+        if response.exec_host and response.exec_host != "localhost":
             import socket
             try:
                 exec_host_name, _dummy, _dummy = socket.gethostbyaddr(
@@ -995,20 +1046,20 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 _("Your code ran on %s.") % exec_host_name,
                 "</p>"]))
 
-        if hasattr(response, "stdout") and response.stdout:
+        if response.stdout and response.stdout:
             bulk_feedback_bits.append("".join([
                 "<p>",
                 _("Your code printed the following output"),
                 ":"
                 "<pre>%s</pre></p>"])
                     % escape(response.stdout))
-        if hasattr(response, "stderr") and response.stderr:
+        if response.stderr and response.stderr:
             bulk_feedback_bits.append("".join([
                 "<p>",
                 _("Your code printed the following error messages"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.stderr))
-        if hasattr(response, "figures") and response.figures:
+        if response.figures and response.figures:
             fig_lines = ["".join([
                 "<p>",
                 _("Your code produced the following plots"),
@@ -1030,7 +1081,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # {{{ html output / sanitization
 
-        if hasattr(response, "html") and response.html:
+        if response.html:
             if (page_context.course is None
                     or not page_context.course.trusted_for_markup):
                 bulk_feedback_bits.extend(
@@ -1046,23 +1097,33 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 feedback="\n".join(feedback_bits),
                 bulk_feedback="\n".join(bulk_feedback_bits))
 
-    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+    @override
+    def page_correct_answer(self,
+                page_context: PageContext,
+                page_data: PageData,
+                answer_data: AnswerData,
+                grade_data: GradeData):
         result = ""
 
-        if hasattr(self.page_desc, "correct_code_explanation"):
+        if self.correct_code_explanation is not None:
             result += markup_to_html(
                     page_context,
-                    self.page_desc.correct_code_explanation)
+                    self.correct_code_explanation)
 
-        if hasattr(self.page_desc, "correct_code"):
+        if self.correct_code:
             result += ("".join([
                 _("The following code is a valid answer"),
                 ": <pre>%s</pre>"])
-                % escape(self.page_desc.correct_code))
+                % escape(self.correct_code))
 
         return result
 
-    def normalized_answer(self, page_context, page_data, answer_data):
+    @override
+    def normalized_answer(self,
+                page_context: PageContext,
+                page_data: PageData,
+                answer_data: AnswerData,
+            ):
         if answer_data is None:
             return None
 
@@ -1071,12 +1132,27 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         from django.utils.html import escape
         return mark_safe(f"<pre>{escape(normalized_answer)}</pre>")
 
-    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+    @override
+    def normalized_bytes_answer(self,
+                page_context: PageContext,
+                page_data: PageData,
+                answer_data: AnswerData,
+            ):
         if answer_data is None:
             return None
 
         suffix = self.suffix
         return (suffix, self.get_code_from_answer_data(answer_data).encode("utf-8"))
+
+    @property
+    @abstractmethod
+    def suffix(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def language_mode(self) -> str:
+        ...
 
 # }}}
 
@@ -1125,7 +1201,7 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
                 feedback.finish(0, "Your computed c was incorrect.")
 
     If you are not including the
-    :attr:`course.constants.flow_permission.change_answer`
+    :attr:`course.constants.FlowPermission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 
@@ -1294,22 +1370,22 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
 
     * ``user_code``: The user code being tested, as a string.
     """
+    type: Literal["PythonCodeQuestion"]  = "PythonCodeQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
     @property
+    @override
     def language_mode(self):
         return "python"
 
     @property
     def container_image(self):
+        from django.conf import settings
         return settings.RELATE_DOCKER_RUNPY_IMAGE
 
     @property
+    @override
     def suffix(self):
         return ".py"
-
-    def __init__(self, vctx, location, page_desc, language_mode="python"):
-        super().__init__(vctx, location, page_desc,
-        language_mode)
 
 # }}}
 
@@ -1317,14 +1393,14 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
 # {{{ python code question with human feedback
 
 class PythonCodeQuestionWithHumanTextFeedback(
-        PageBaseWithHumanTextFeedback, PythonCodeQuestion):
+        PageBaseWithHumanTextFeedback, CodeQuestion, PageBaseWithoutHumanGrading):
     """
     A question allowing an answer consisting of Python code.
     This page type allows both automatic grading and grading
     by a human grader.
 
     If you are not including the
-    :attr:`course.constants.flow_permission.change_answer`
+    :attr:`course.constants.FlowPermission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 
@@ -1343,105 +1419,49 @@ class PythonCodeQuestionWithHumanTextFeedback(
     Supports automatic computation of point values from textual feedback.
     See :ref:`points-from-feedback`.
 
-    .. attribute:: human_feedback_value
+    .. autoattribute:: human_feedback_percentage
 
-        Optional (deprecated).
-        A number. The point value of the feedback component
-        by the human grader (who will grade on a 0-100 scale,
-        which is scaled to yield :attr:`human_feedback_value`
-        at 100).
-
-    .. attribute:: human_feedback_percentage
-
-        Optional.
-        A number. The percentage the feedback by the human
-        grader takes in the overall grade. Noticing that
-        either this attribute or :attr:`human_feedback_value`
-        must be included. `
-
-    .. attribute:: rubric
+    .. autoattribute:: rubric
 
         Required.
         The grading guideline for this question (for the human-graded component
         of the question), in :ref:`markup`.
     """
+    type: Literal["PythonCodeQuestionWithHumanTextFeedback"]  = (  # pyright: ignore[reportIncompatibleVariableOverride]
+        "PythonCodeQuestionWithHumanTextFeedback"
+    )
 
-    def __init__(self, vctx, location, page_desc):
-        super().__init__(
-                vctx, location, page_desc)
+    human_feedback_percentage: Annotated[float, AllowInfNan(False), Ge(0), Le(100)]
+    """The percentage the feedback by the human
+    grader takes in the overall grade."""
 
-        if vctx is not None:
-            if (
-                    hasattr(self.page_desc, "human_feedback_value")
-                    and hasattr(self.page_desc, "human_feedback_percentage")):
-                raise ValidationError(
-                    string_concat(
-                        "%(location)s: ",
-                        _("'human_feedback_value' and "
-                          "'human_feedback_percentage' are not "
-                          "allowed to coexist"))
-                    % {"location": location}
-                )
-            if not (hasattr(self.page_desc, "human_feedback_value")
-                    or hasattr(self.page_desc, "human_feedback_percentage")):
-                raise ValidationError(
-                    string_concat(
-                        "%(location)s: ",
-                        _("expecting either 'human_feedback_value' "
-                          "or 'human_feedback_percentage', found neither."))
-                    % {"location": location}
-                )
-            if hasattr(self.page_desc, "human_feedback_value"):
-                vctx.add_warning(
-                    location,
-                    _("Used deprecated 'human_feedback_value' attribute--"
-                      "use 'human_feedback_percentage' instead."))
-                if self.page_desc.value == 0:
-                    raise ValidationError("".join([
-                        "%s: ",
-                        _("'human_feedback_value' attribute is not allowed "
-                          "if value of question is 0, use "
-                          "'human_feedback_percentage' instead")])
-                        % location)
-                if self.page_desc.human_feedback_value > self.page_desc.value:
-                    raise ValidationError("".join([
-                        "%s: ",
-                        _("human_feedback_value greater than overall "
-                            "value of question")])
-                        % location)
-            if hasattr(self.page_desc, "human_feedback_percentage"):
-                if not (
-                        0 <= self.page_desc.human_feedback_percentage <= 100):
-                    raise ValidationError("".join([
-                        "%s: ",
-                        _("the value of human_feedback_percentage "
-                          "must be between 0 and 100")])
-                        % location)
+    @property
+    @override
+    def language_mode(self):
+        return "python"
 
-        if hasattr(self.page_desc, "human_feedback_value"):
-            self.human_feedback_percentage = (
-                self.page_desc.human_feedback_value * 100 / self.page_desc.value)
-        else:
-            self.human_feedback_percentage = (
-                self.page_desc.human_feedback_percentage)
+    @property
+    def container_image(self):
+        from django.conf import settings
+        return settings.RELATE_DOCKER_RUNPY_IMAGE
 
-    def required_attrs(self):
-        return (
-            *super().required_attrs(),
-            # value is otherwise optional, but we require it here
-            ("value", (int, float)),
-            )
+    @property
+    @override
+    def suffix(self):
+        return ".py"
 
-    def allowed_attrs(self):
-        return (
-            *super().allowed_attrs(),
-            ("human_feedback_value", (int, float)),
-            ("human_feedback_percentage", (int, float)))
+    @override
+    def human_feedback_point_value(self,
+                page_context: PageContext,
+                page_data: PageData):
+        return self.max_points(page_data) * self.human_feedback_percentage / 100
 
-    def human_feedback_point_value(self, page_context, page_data):
-        return self.page_desc.value * self.human_feedback_percentage / 100
-
-    def grade(self, page_context, page_data, answer_data, grade_data):
+    @override
+    def grade(self,
+              page_context: PageContext,
+              page_data: PageData,
+              answer_data: AnswerData,
+              grade_data: GradeData):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=_("No answer provided."))
@@ -1449,16 +1469,16 @@ class PythonCodeQuestionWithHumanTextFeedback(
         if grade_data is not None and not grade_data["released"]:
             grade_data = None
 
-        code_feedback = PythonCodeQuestion.grade(self, page_context,
-                page_data, answer_data, grade_data)
+        code_feedback = not_none(CodeQuestion.grade(
+                            self, page_context, page_data, answer_data, grade_data))
 
         human_points = self.human_feedback_point_value(page_context, page_data)
-        code_points = self.page_desc.value - human_points
+        code_points = self.max_points(page_data) - human_points
 
         correctness = None
         percentage = None
-        if (code_feedback is not None
-                and code_feedback.correctness is not None
+        if (
+                code_feedback.correctness is not None
                 and grade_data is not None
                 and grade_data["grade_percent"] is not None):
             code_feedback_percentage = 100 - self.human_feedback_percentage
@@ -1494,8 +1514,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         * human_points)
 
         code_feedback_points = None
-        if (code_feedback is not None
-                and code_feedback.correctness is not None):
+        if code_feedback.correctness is not None:
             code_feedback_points = code_feedback.correctness*code_points
 
         from django.template.loader import render_to_string

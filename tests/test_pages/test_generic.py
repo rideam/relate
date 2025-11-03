@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import unittest
+from pathlib import Path
 
 import pytest
 from django.test import Client, TestCase
@@ -254,8 +255,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
         self.assertFormErrorLoose(
             submit_answer_response,
-            "ValidationError: submitted page: "
-            "one or more correct answer(s) expected, 0 found"
+            "at least one 'correct' choice is required"
         )
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
@@ -268,7 +268,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 do_grading=False))
         self.assertFormErrorLoose(
             submit_answer_response,
-            "ValidationError: page must be of type 'ChoiceQuestion'"
+            "ValueError: page must be of type 'ChoiceQuestion'"
         )
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
@@ -285,8 +285,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, do_grading=False))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_TEXT_FILE_PATH, "rb") as fp:
-            expected_result1 = fp.read()
+        expected_result1 = Path(TEST_TEXT_FILE_PATH).read_bytes()
 
         # change answer
         _submit_answer_response, _post_grade_response = (
@@ -296,8 +295,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_PDF_FILE_PATH, "rb") as fp:
-            expected_result2 = fp.read()
+        expected_result2 = Path(TEST_PDF_FILE_PATH).read_bytes()
 
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
@@ -343,8 +341,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_PDF_FILE_PATH, "rb") as fp:
-            expected_result = fp.read()
+        expected_result = Path(TEST_PDF_FILE_PATH).read_bytes()
 
         from course.page.upload import FileUploadQuestion
         last_answer_visit = self.get_last_answer_visit()
@@ -543,44 +540,42 @@ class GetAutoFeedbackTest(unittest.TestCase):
         self.assertIn("No information", get_auto_feedback(None))
 
     def test_not_correct(self):
-        self.assertIn("not correct", get_auto_feedback(0.000001))
-        self.assertIn("not correct", get_auto_feedback(-0.000001))
+        self.assertIn("no credit", get_auto_feedback(0.000001))
+        self.assertIn("no credit", get_auto_feedback(-0.000001))
 
     def test_correct(self):
         result = get_auto_feedback(0.999999)
-        self.assertIn("is correct", result)
-        self.assertNotIn("bonus", result)
+        self.assertIn("full credit", result)
+        self.assertNotIn("extra", result)
 
         result = get_auto_feedback(1)
-        self.assertIn("is correct", result)
-        self.assertNotIn("bonus", result)
+        self.assertIn("full credit", result)
+        self.assertNotIn("extra", result)
 
         result = get_auto_feedback(1.000001)
-        self.assertIn("is correct", result)
-        self.assertNotIn("bonus", result)
+        self.assertIn("full credit", result)
+        self.assertNotIn("extra", result)
 
-    def test_correct_with_bonus(self):
+    def test_correct_with_extra(self):
         result = get_auto_feedback(1.01)
-        self.assertIn("is correct", result)
-        self.assertIn("bonus", result)
+        self.assertIn("extra credit", result)
+        self.assertIn("extra", result)
 
         result = get_auto_feedback(2)
-        self.assertIn("is correct", result)
-        self.assertIn("bonus", result)
+        self.assertIn("extra credit", result)
 
         result = get_auto_feedback(9.99999)
-        self.assertIn("is correct", result)
-        self.assertIn("bonus", result)
+        self.assertIn("extra credit", result)
 
     def test_with_mostly_correct(self):
-        self.assertIn("mostly correct", get_auto_feedback(0.51))
-        self.assertIn("mostly correct", get_auto_feedback(0.999))
+        self.assertIn("more than half credit", get_auto_feedback(0.51))
+        self.assertIn("more than half credit", get_auto_feedback(0.999))
 
     def test_with_somewhat_correct(self):
-        self.assertIn("somewhat correct", get_auto_feedback(0.5))
-        self.assertIn("somewhat correct", get_auto_feedback(0.5000001))
-        self.assertIn("somewhat correct", get_auto_feedback(0.001))
-        self.assertIn("somewhat correct", get_auto_feedback(0.2))
+        self.assertIn("some credit", get_auto_feedback(0.5))
+        self.assertIn("some credit", get_auto_feedback(0.5000001))
+        self.assertIn("some credit", get_auto_feedback(0.001))
+        self.assertIn("some credit", get_auto_feedback(0.2))
 
     def test_correctness_negative(self):
         correctness = -0.1

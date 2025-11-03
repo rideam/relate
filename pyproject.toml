@@ -47,6 +47,14 @@ dependencies = [
     "urllib3>=2.3.0,<3",
     "typing_extensions>=4.14.1",
 
+    "pydantic~=2.12",
+
+    # needed by pydantic EmailStr
+    "email-validator~=2.3.0",
+    "annotated-types~=0.7.0",
+
+    "packaging>=25",
+
     # prevent spurious downgrade by uv? Counters upper bound by pysaml2:
     # https://github.com/IdentityPython/pysaml2/blob/0252ec96058c87c43f89e05d978e72b6ba2e6978/CHANGELOG.md?plain=1#L10
     "pyopenssl>=24.2.1"
@@ -72,9 +80,16 @@ dev = [
     "pytest>=8,<9",
     "pytest-django>=4.5.2,<5",
     "pytest-factoryboy>=2.6.0,<3",
+    "jsonpatch>=1.33",
+
     # https://github.com/wronglink/pytest-pudb/pull/29
-    # "pytest-pudb>=0.7,<0.8",
+    "pytest_pudb @ git+https://github.com/ndhansen/pytest-pudb.git@c29b32a7c93e9a2d40ae1d8594c1fcb3dfd26e06",
+
     "safety>=3.2.11,<4",
+    # workaround for:
+    # https://github.com/pyupio/safety/issues/784
+    "typer<0.21",
+
     "sphinx>=8.1.3,<9",
     "furo>=2024.8.6,<2026",
     "sphinx-copybutton>=0.5.2,<0.6",
@@ -135,6 +150,7 @@ extend-select = [
     "UP",
     "TC",
     # "DJ",
+    "FURB",
 ]
 
 extend-ignore = [
@@ -172,7 +188,7 @@ multiline-quotes = "double"
 "saml-config/attribute-maps/*.py" = ["Q", "E231", "W292", "W291", "E501", "I002"]
 
 # mostly generated
-"*/migrations/*.py" = ["Q", "E501", "RUF012", "F401", "I002", "UP"]
+"*/migrations/*.py" = ["Q", "E501", "RUF012", "F401", "I002", "UP", "N813"]
 
 # TODO
 "tests/**/*.py" = ["F841", "RUF012"]
@@ -194,6 +210,9 @@ show_error_codes = true
 untyped_calls_exclude = [
     "dulwich",
 ]
+allow_untyped_calls = true
+allow_redefinition_new = true
+local_partial_types = true
 
 [tool.django-stubs]
 django_settings_module = "relate.settings"
@@ -235,6 +254,8 @@ stip = "stip"
 documen = "documen"
 # like sur_name in SAML
 sur = "sur"
+# like serialization
+"ser" = "ser"
 
 [tool.typos.files]
 extend-exclude = [
@@ -270,16 +291,23 @@ exclude = [
     "course/migrations",
     "accounts/migrations",
     "prairietest/migrations",
+    "local_settings.py",
+    "doc/conf.py",
+    "node_modules",
+]
+include = [
+    ".",
+    "docker-image-run-py/runcode"
 ]
 
 [[tool.basedpyright.executionEnvironments]]
 root = "tests"
+extraPaths = ["."]
 
 reportAny = "none"
 reportArgumentType = "hint"
 reportAssignmentType = "none"
 reportAttributeAccessIssue = "hint"
-reportCallIssue = "hint"
 reportConstantRedefinition = "none"
 reportGeneralTypeIssues = "hint"
 reportIncompatibleMethodOverride = "none"
@@ -294,5 +322,10 @@ reportPossiblyUnboundVariable = "none"
 reportPrivateUsage = "none"
 reportUninitializedInstanceVariable = "hint"
 reportUnknownArgumentType = "hint"
+reportUnknownParameterType = "hint"
+reportUnknownVariableType = "hint"
+reportUnknownMemberType = "hint"
+reportImplicitOverride = "hint"
+reportUnannotatedClassAttribute = "hint"
 
 # vim: foldmethod=marker

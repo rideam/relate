@@ -165,6 +165,8 @@ developing content.
 RELATE markup
 -------------
 
+.. class:: Markup
+
 All bulk text in RELATE is written in Markdown, with a few extensions.
 Here are a few resources on Markdown:
 
@@ -246,23 +248,13 @@ a RELATE site:
 
   To avoid exposing sensitive files, a special file :file:`.attributes.yml`
   must be present in the same directory as the file which allows public
-  access to the file. This file should be valid YAML and look like this::
+  access to the file. This file should be valid YAML and conform to the following
+  data model:
 
-      unenrolled:
-      - "*.png"
-      - "*.jpeg"
+  .. currentmodule:: course.validation
 
-  In addition to ``unenrolled``, the file can also include the following
-  sections:
+  .. autoclass:: AttributesFile
 
-  * ``unenrolled``: Allow access to these files from anywhere on the
-    Internet, except for locked-down exam sessions.
-  * ``in_exam``: Allow access to these files when a locked-down exam
-    is ongoing.
-  * ``student``: Allow access to these files for ``student``, ``ta``, and
-    ``instructor`` roles
-  * ``ta``: Allow access to these files for ``ta`` and ``instructor`` roles
-  * ``instructor``: Allow access to these files only for the ``instructor`` role
 
 * The URL schema ``repocur:some/file/name.png``
   generally works the same way as ``repo:``, with these differences:
@@ -395,60 +387,14 @@ the information shown on the main course page.
 A static page looks as follows and is either the main course file
 or a file in the ``staticpages`` subfolder of the course repository.
 
-.. class:: Page
+.. currentmodule:: course.content
 
-    .. attribute:: content
-
-        :ref:`markup`. If given, this contains the entirety of the page's
-        content.
-        May only specify exactly one of :attr:`content` or :attr:`chunks`.
-
-    .. attribute:: chunks
-
-        A list of :ref:`course-chunks`. Chunks allow dynamic reordering
-        and hiding of course information based on time and rules.
-
-        May only specify exactly one of :attr:`content` or :attr:`chunks`.
-
-.. comment:
-    .. attribute:: grade_summary_code
-
-        Python code to categorize grades and compute summary grades.
-
-        This code must be both valid Python version 2 and 3.
-
-        It has access to a the following variables:
-
-        * ``grades``: a dictionary that maps grade
-          identifiers to objects with the following attributes:
-
-          * ``points`` a non-negative floating-point number, or *None*
-          * ``max_points`` a non-negative floating-point number
-          * ``percentage`` a non-negative floating-point number, or *None*
-          * ``done`` whether a grade of *None* should be counted as zero
-            points
-
-          The code may modify this variable.
-
-        * ``grade_names``
-
-          The code may modify this variable.
-
-        It should create the following variables:
-
-        * ``categories`` a dictionary from grade identifiers to category
-          names.
-
-        * ``cat_order`` a list of tuples ``(category_name, grade_id_list)``
-          indicating (a) the order in which categories are displayed and
-          (b) the order in which grades are shown within each category.
+.. autoclass:: StaticPageDesc
 
 .. _course-chunks:
 
 Course Page Chunks
 ^^^^^^^^^^^^^^^^^^
-
-.. _events:
 
 A 'chunk' of the course page is a piece of :ref:`markup` that can shown,
 hidden, and ordered based on a few conditions.
@@ -474,78 +420,11 @@ Here's an example:
 
             Please take our introductory [quiz](flow:quiz-intro).
 
-.. class:: CourseChunk
+.. autoclass:: ChunkDesc
 
-    .. attribute:: title
+.. autoclass:: ChunkRuleDesc
 
-        A plain text description of the chunk to be used in a table of
-        contents. A string. No markup allowed. Optional. If not supplied,
-        the first ten lines of the page body are searched for a
-        Markdown heading (``# My title``) and this heading is used as a title.
-
-    .. attribute:: id
-
-        An identifier used as page anchors and for tracking. Not
-        user-visible otherwise.
-
-    .. attribute:: rules
-
-        A list of :class:`CoursePageChunkRules` that will be tried in
-        order. The first rule whose conditions match determines whether
-        the chunk will be shown and how where on the page it will be.
-        Optional. If not given, the chunk is shown and has a default
-        :attr:`CoursePageChunkRules.weight` of 0.
-
-    .. attribute:: content
-
-        The content of the chunk in :ref:`markup`.
-
-
-.. class:: CoursePageChunkRules
-
-    .. attribute:: weight
-
-        (Required) An integer indicating how far up the page the block
-        will be shown. Blocks with identical weight retain the order
-        in which they are given in the course information file.
-
-    .. attribute:: if_after
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time after which this rule
-        applies.
-
-    .. attribute:: if_before
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time before which this rule
-        applies.
-
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of the roles defined in the course, by
-        default ``unenrolled``, ``ta``, ``student``, ``instructor``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_in_facility
-
-        (Optional) Name of a facility known to the RELATE web page. This rule allows
-        (for example) showing chunks based on whether a user is physically
-        located in a computer-based testing center (which RELATE can
-        recognize based on IP ranges).
-
-    .. attribute:: shown
-
-        (Optional) A boolean (``true`` or ``false``) indicating whether the chunk
-        should be shown.
-
+.. _events:
 
 Calendar and Events
 -------------------
@@ -560,7 +439,7 @@ Events serve two purposes:
   10:30:00``, you could write ``lecture 13``. This allows course content to
   be written in a way that is reusable--only the mapping from (e.g.)
   ``lecture 13`` to the real date needs to be provided--the course material
-  istelf can remain unchanged.
+  itself can remain unchanged.
 
 * They are (optionally) shown in the class calendar.
 
@@ -612,6 +491,8 @@ Each date may be modified by adding further modifiers:
 
 Multiple of these modifiers may occur. They are applied from left to right.
 
+.. automodule:: course.datespec
+
 .. events_yml
 
 The Calendar Information File: :file:`events.yml`
@@ -652,5 +533,15 @@ colors can also be overridden for each event specifically.
 
 All attributes in each section (as well as the entire calendar information
 file) are optional.
+
+Special values
+^^^^^^^^^^^^^^
+
+.. currentmodule:: course.validation
+
+.. class:: NotSpecified
+
+    Used as a default/sentinel value in a few places where ``None`` (or ``null``
+    in YAML) is a valid value, to indicate that a value was not provided.
 
 .. # vim: textwidth=75
