@@ -1,0 +1,133 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: relate
+      POSTGRES_USER: relate
+      POSTGRES_PASSWORD: relate_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relate -d relate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: relate
+      RABBITMQ_DEFAULT_PASS: relate_password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+#  redis:
+#    image: redis:8.0-alpine
+#    command: redis-server --appendonly yes
+#    ports:
+#      - "6379:6379"
+#    volumes:
+#      - redis_data:/data
+#    healthcheck:
+#      test: bash -c 'exec 6<>/dev/tcp/redis/6379'
+#      interval: 2s
+#      retries: 10
+
+#  memcached:
+#    image: memcached:1.6-alpine
+#    ports:
+#      - "11211:11211"
+#    command: memcached -m 64
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - git_roots:/app/git-roots
+      - bulk_storage:/app/bulk-storage
+      - static:/app/static
+      - media:/app/media
+      - ./docker-local-settings.py:/app/local_settings.py
+#      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+#      memcached:
+#        condition: service_started
+    command: >
+      sh -c "
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput &&
+        python manage.py createsuperuser --noinput --username admin --email admin@example.com || true &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+#cp local_settings_example.py local_settings.py &&
+  celery:
+    build: .
+    volumes:
+      - git_roots:/app/git-roots
+      - bulk_storage:/app/bulk-storage
+      - ./docker-local-settings.py:/app/local_settings.py
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: python -m celery -A relate worker --loglevel=info
+
+  celery-beat:
+    build: .
+    volumes:
+      - git_roots:/app/git-roots
+      - bulk_storage:/app/bulk-storage
+      - ./docker-local-settings.py:/app/local_settings.py
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: python -m celery -A relate beat --loglevel=info
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - static:/var/www/relate/static
+      - media:/var/www/relate/media
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
+  git_roots:
+  bulk_storage:
+  static:
+  media:
+
+networks:
+  default:
+    driver: bridge

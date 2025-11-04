@@ -13,8 +13,10 @@
 
                     <p>Get Access to Learning Material and Take Control of Your Learning Journey.</p>
                     <div style="display: flex; column-gap: .5rem; margin-top: 3rem;" class="hero-cta-btn">
+
+                      {% comment %} href="{% url 'relate-sign_up' %}"{% endcomment %}
                         <a style="display: inline-flex; column-gap: .3rem;" class="btn btn-primary"
-                           href="{% url 'relate-sign_up' %}">
+                        href="{% url student_sign_in_view %}">
                             Get Started
                             {% comment %} <img style='height: 1.5rem; width: 1.5rem;' src='{% static 'img/arrow-right.svg' %}'> {% endcomment %}
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -23,16 +25,16 @@
                                       fill="white"/>
                             </svg>
                         </a>
-                        <a style="display: inline-flex; column-gap: .3rem;" class="btn"
+                       {% comment %} <a style="display: inline-flex; column-gap: .3rem;" class="btn"
                            href="{% url student_sign_in_view %}">
                             Explore Courses
-                            {% comment %} <img style='height: 1.5rem; width: 1.5rem;' src='{% static 'img/arrow-right.svg' %}'> {% endcomment %}
+                             <img style='height: 1.5rem; width: 1.5rem;' src='{% static 'img/arrow-right.svg' %}'>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                                  xmlns="http://www.w3.org/2000/svg">
                                 <path d="M13.4697 8.53033C13.1768 8.23744 13.1768 7.76256 13.4697 7.46967C13.7626 7.17678 14.2374 7.17678 14.5303 7.46967L18.5303 11.4697C18.8232 11.7626 18.8232 12.2374 18.5303 12.5303L14.5303 16.5303C14.2374 16.8232 13.7626 16.8232 13.4697 16.5303C13.1768 16.2374 13.1768 15.7626 13.4697 15.4697L16.1893 12.75H6.5C6.08579 12.75 5.75 12.4142 5.75 12C5.75 11.5858 6.08579 11.25 6.5 11.25H16.1893L13.4697 8.53033Z"
                                       fill="white"/>
                             </svg>
-                        </a>
+                        </a>{% endcomment %}
                     </div>
                 </div>
                 <div class="hero-img">
@@ -88,8 +90,8 @@
         <section style="padding-top: 1rem !important;">
             {% block cover %}
                 {% if user.is_authenticated and user.is_staff %}
-                    <div class="mb-5"><a class="btn btn-outline-primary" href="{% url 'relate-set_up_new_course' %}"
-                                         role="button">{% trans "Set up new course" %} &raquo;</a></div>
+                    <div class="d-flex justify-content-end mb-3"><a class="btn btn-primary" href="{% url 'relate-set_up_new_course' %}"
+                                         role="button">{% trans "Set up New course" %} &raquo;</a></div>
                 {% endif %}
             {% endblock %}
             {% block course_list %}
@@ -148,7 +150,7 @@
                         {% endblock %}
                     {% endif %}
                 {% else %}
-                    {% blocktrans trimmed with RELATE=relate_site_name %} No subjects to show
+                    {% blocktrans trimmed with RELATE=relate_site_name %} Nothing to show
                     {% endblocktrans %}
                     {% if not user.is_authenticated %}
                         {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11, <4"
 resolution-markers = [
     "python_full_version >= '3.14' and platform_python_implementation != 'PyPy'",
@@ -580,6 +580,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/88/a1/ffd7b0e160296121d88e3e173165370000ee4de7328f5c4f4b266638dcd9/django_crispy_forms-2.4.tar.gz", hash = "sha256:915e1ffdeb2987d78b33fabfeff8e5203c8776aa910a3a659a2c514ca125f3bd", size = 278932, upload-time = "2025-04-13T07:25:00.176Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/ec/a25f81e56a674e63cf6c3dd8e36b1b3fecc238fecd6098504adc0cc61402/django_crispy_forms-2.4-py3-none-any.whl", hash = "sha256:5a4b99876cfb1bdd3e47727731b6d4197c51c0da502befbfbec6a93010b02030", size = 31446, upload-time = "2025-04-13T07:24:58.516Z" },
+]
+
+[[package]]
+name = "django-environ"
+version = "0.11.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/0b/f2c024529ee4bbf8b95176eebeb86c6e695192a9ce0e91059cb83a33c1d3/django-environ-0.11.2.tar.gz", hash = "sha256:f32a87aa0899894c27d4e1776fa6b477e8164ed7f6b3e410a62a6d72caaf64be", size = 54326, upload-time = "2023-09-01T21:03:02.435Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/f1/468b49cccba3b42dda571063a14c668bb0b53a1d5712426d18e36663bd53/django_environ-0.11.2-py2.py3-none-any.whl", hash = "sha256:0ff95ab4344bfeff693836aa978e6840abef2e2f1145adff7735892711590c05", size = 19141, upload-time = "2023-09-01T21:02:59.88Z" },
 ]
 
 [[package]]
@@ -2035,6 +2044,7 @@ dependencies = [
     { name = "django" },
     { name = "django-celery-results" },
     { name = "django-crispy-forms" },
+    { name = "django-environ" },
     { name = "django-select2" },
     { name = "django-stubs-ext" },
     { name = "django-yamlfield" },
@@ -2126,6 +2136,7 @@ requires-dist = [
     { name = "django", specifier = ">=5.2,<6" },
     { name = "django-celery-results", specifier = ">=2.4.0,<3" },
     { name = "django-crispy-forms", specifier = ">=1.13.0" },
+    { name = "django-environ", specifier = "==0.11.2" },
     { name = "django-select2", specifier = ">=8.2.1,<9" },
     { name = "django-stubs-ext" },
     { name = "django-yamlfield", git = "https://github.com/bakatrouble/django-yamlfield.git?rev=c92d0373d12a02d1e52fb09b44010f156111d7ea" },
@@ -2177,7 +2188,7 @@ dev = [
     { name = "safety", specifier = ">=3.2.11,<4" },
     { name = "sphinx", specifier = ">=8.1.3,<9" },
     { name = "sphinx-copybutton", specifier = ">=0.5.2,<0.6" },
-    { name = "typer", specifier = "<0.20" },
+    { name = "typer", specifier = "<0.21" },
     { name = "types-bleach", specifier = ">=6.2.0,<7" },
     { name = "types-markdown", specifier = "~=3.7" },
     { name = "types-paramiko", specifier = ">=3.5.0,<5" },

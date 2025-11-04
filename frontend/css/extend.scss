@@ -1,17 +1,17 @@
 //$primary: #371295;
-$secondary: #794bec;
+$secondary: #af4829;
 //$secondary: #410c96;
 
 //$secondary: #448aff;
 //$code-color: #ff00a3;
 
 
-@import url("https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700");
+@import url("https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700");
 body {
   //font-family: 'Nunito Sans', sans-serif !important;
   //font-family: 'Lato', sans-serif !important;
   //font-family: 'Mulish', sans-serif !important;
-  font-family: 'Poppins', sans-serif !important;
+  font-family: 'Montserrat', sans-serif !important;
   //font-family: 'Raleway', sans-serif !important;
   //font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   letter-spacing: .2px;
@@ -49,7 +49,7 @@ summary {
 
 
 div.alert {
-  width: fit-content;
+  //width: fit-content;
   padding-right: 1.5rem;
 }
 
@@ -504,19 +504,19 @@ div.rendered_html div.highlight > pre {
 //}
 
 a {
-  color: #4c2095 !important;
+  color: #af4829 !important;
   text-decoration: none !important;
 }
 
 .text-relate {
-  color: #4c2095 !important;
+  color: #af4829 !important;
 }
 
 
 .btn-primary {
   color: #fff !important;
-  background-color: #4c2095 !important;
-  border-color: #4c2095 !important;
+  background-color: #af4829 !important;
+  border-color: #af4829 !important;
 }
 
 .btn-primary::before {
@@ -525,16 +525,16 @@ a {
 
 .btn-primary:active, .btn-primary:hover, .btn-primary.focus, .btn-primary:focus, .btn-primary.active {
   color: #fff !important;
-  background-color: #4c2095 !important;
-  border-color: #4c2095 !important;
+  background-color: #af4829 !important;
+  border-color: #af4829 !important;
   // #8710d8
 }
 
 
 .btn-outline-primary {
-  color: #4c2095 !important;
+  color: #af4829 !important;
   background-color: #fff !important;
-  border-color: #4c2095 !important;
+  border-color: #af4829 !important;
 }
 
 //.btn-primary::before {
@@ -542,8 +542,8 @@ a {
 //}
 .btn-outline-primary:active, .btn-outline-primary:hover, .btn-outline-primary.focus, .btn-outline-primary:focus, .btn-outline-primary.active {
   color: #fff !important;
-  background-color: #4c2095 !important;
-  border-color: #4c2095 !important;
+  background-color: #af4829 !important;
+  border-color: #af4829 !important;
   // #8710d8
 }
 
@@ -555,7 +555,7 @@ a {
  */
 
 /*  typography */
-/*@import url("https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700");
+/*@import url("https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700");
 @font-face {
   font-family: "futura-bold";
   src: url("../fonts/Futura-Bold.woff") format("woff");
@@ -564,7 +564,7 @@ a {
 }
 body {
   line-height: 1.2;
-  font-family: "Poppins", sans-serif;
+  font-family: "Montserrat", sans-serif;
   -webkit-font-smoothing: antialiased;
   font-size: 15px;
   color: #5c5c77;
@@ -575,7 +575,7 @@ p, .paragraph {
   color: #5c5c77;
   font-size: 15px;
   line-height: 1.9;
-  font-family: "Poppins", sans-serif;
+  font-family: "Montserrat", sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -642,7 +642,7 @@ h6, .h6 {
 !* Button style *!
 .btn {
   font-size: 16px;
-  font-family: "Poppins", sans-serif;
+  font-family: "Montserrat", sans-serif;
   text-transform: capitalize;
   padding: 15px 40px;
   border-radius: 0;
@@ -1193,7 +1193,7 @@ link:focus,
   color: #1e1e4b;
   transition: 0.2s ease;
   text-transform: capitalize;
-  font-family: "Poppins", sans-serif;
+  font-family: "Montserrat", sans-serif;
 }
 @media (max-width: 991px) {
   .navbar .dropdown .dropdown .dropdown-toggle, .navbar .dropdown-item {
@@ -1509,7 +1509,7 @@ section {
   letter-spacing: 2px;
   text-transform: uppercase;
   color: #aaaaaa;
-  font-family: "Poppins", sans-serif;
+  font-family: "Montserrat", sans-serif;
 }
 
 .section-title h2::after {
@@ -1527,7 +1527,7 @@ section {
   font-size: 36px;
   font-weight: 700;
   text-transform: uppercase;
-  font-family: "Poppins", sans-serif;
+  font-family: "Montserrat", sans-serif;
   color: #37423b;
 }
 
@@ -1621,7 +1621,7 @@ section {
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.05);
   padding: 1rem;
   border-radius: 4px;
-  border: 1px solid #4c2095;
+  border: 1px solid #af4829;
   position: relative;
 
   &:hover {
@@ -1869,10 +1869,10 @@ footer span img {
 
 
 .text-primary {
-  color: #4c2095 !important;
+  color: #af4829 !important;
 }
 
 .subject-card {
   width: 18rem;
-  border-top: 4px solid #4c2095;
+  border-top: 4px solid #af4829;
 }

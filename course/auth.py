@@ -23,8 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import sys
 import re
+import sys
 from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
@@ -37,7 +37,7 @@ from typing import (
 
 import django.forms as forms
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Button, Div, Layout, Submit
+from crispy_forms.layout import Button, Div, Layout, Submit, Field
 from django import http
 from django.conf import settings
 from django.contrib import messages
@@ -396,10 +396,10 @@ class LoginForm(AuthenticationFormBase):
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_tag = False
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        self.helper.label_class = ""
+        self.helper.field_class = ""
 
-        self.helper.add_input(Submit("submit", _("Sign in")))
+        self.helper.add_input(Submit("submit", _("Sign in"), css_class="w-100 mt-3"))
 
         super().__init__(*args, **kwargs)
 
@@ -787,8 +787,15 @@ class SignInByEmailForm(StyledForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.helper.label_class = ""
+        self.helper.field_class = ""
+        self.helper.form_class = ""
+        self.helper.layout = Layout(
+            Field('email', template_name='bootstrap5/field.html'),
+        )
+
         self.helper.add_input(
-                Submit("submit", _("Send sign-in email")))
+                Submit("submit", _("Send sign-in email"), css_class='w-100 mt-2'))
 
 
 @logout_confirmation_required
@@ -988,7 +995,7 @@ class UserForm(StyledModelForm):
 @login_required
 def user_profile(request):
     user_form = None
-    print(f'#### profile update ', file=sys.stdout)
+    # print("#### profile update ", file=sys.stdout)
 
     def is_inst_id_locked(user):
         if is_inst_id_editable_before_validation():
@@ -1012,7 +1019,7 @@ def user_profile(request):
             )
             if user_form.is_valid():
                 if user_form.has_changed():
-                    print(f'#### HERE {user_form.fields["first_name"]} ', file = sys.stdout)
+                    # print(f'#### HERE {user_form.fields["first_name"]} ', file=sys.stdout)
                     user_form.save()
                     messages.add_message(request, messages.SUCCESS,
                             _("Profile data updated."))
